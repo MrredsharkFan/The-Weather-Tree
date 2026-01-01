@@ -241,7 +241,7 @@ function NaNcheck(data) {
 			NaNcheck(data[item]);
 		}
 		
-		else if (data[item] !== data[item] || checkDecimalNaN(data[item])) {
+		else if (data[item] !== data[item]) {
 			if (!NaNalert) {
 				confirm("Invalid value found in player, named '" + item + "'. Please let the creator of this mod know! You can refresh the page, and you will be un-NaNed.")
 				clearInterval(interval);

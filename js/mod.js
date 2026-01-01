@@ -42,6 +42,10 @@ function getPointGen() {
 		return new ExpantaNum(0)
 
 	let gain = new ExpantaNum(1)
+	if (hasUpgrade("e", 12)) { gain = gain.times(upgradeEffect("e", 12)) }
+	if (hasUpgrade("e", 13)) { gain = gain.times(upgradeEffect("e", 13)) }
+	if (hasUpgrade("w", 14)) { gain = gain.times(3) }
+	if (hasUpgrade("w", 12)) { gain = gain.times(clickableEffect("w",11)) }
 	return gain
 }
 
@@ -51,6 +55,7 @@ function addedPlayerData() { return {
 
 // Display extra things at the top of the page
 var displayThings = [
+	"the great meme reset"
 ]
 
 // Determines when the game "ends"
@@ -70,4 +75,16 @@ function maxTickLength() {
 // Use this if you need to undo inflation from an older version. If the version is older than the version that fixed the issue,
 // you can cap their current resources with this.
 function fixOldSave(oldVersion){
+}
+
+function addWatering(x) {
+	if (hasUpgrade("w", 21)){
+		player.w.waterings[x] = player.w.waterings[x].add(player.w.points.div(20))
+		player.w.points = player.w.points.sub(player.w.points.div(20))
+	}
+	else
+	{
+		player.w.waterings[x] = player.w.waterings[x].add(1)
+		player.w.points = player.w.points.sub(1)
+	}
 }

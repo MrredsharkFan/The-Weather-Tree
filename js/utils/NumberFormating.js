@@ -15,7 +15,7 @@ function commaFormat(num, precision) {
     
 }
 
-function formatSmall(x, precision=2) { 
+function formatSmall(x, precision=3) { 
     return format(x, precision, true)    
 }
 
@@ -38,7 +38,7 @@ function egg(n) {
   if(n == undefined) return 0
   return n
 }
-function format(decimal, precision = 2, small=false) {
+function format(decimal, precision = 3, small=false) {
     small = small || modInfo.allowSmall
     decimal = new ExpantaNum(decimal)
     let fmt = decimal.toString()
