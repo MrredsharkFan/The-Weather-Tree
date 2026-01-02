@@ -445,6 +445,7 @@ var interval = setInterval(function() {
 	updateParticles(trueDiff)
 	ticking = false
 	umbrellaTick(diff)
+	other_tick_things()
 }, 50)
 
 setInterval(function () { needCanvasUpdate = true }, 500)
@@ -454,8 +455,17 @@ function umbrellaTick(dt) {
 	umbrellaGain = umbrellaGain.times(buyableEffect("r", 11))
 	if (hasUpgrade("r", 12)) { umbrellaGain = umbrellaGain.times(upgradeEffect("r", 12)) }
 	player.r.umbrellas = player.r.umbrellas.add(umbrellaGain.times(dt))
+	if (hasUpgrade("r", 31)) {player.r.umbrella_nests[0] = player.r.umbrella_nests[0].add(player.r.umbrellas.times(dt))}
 
 	var r_coins_gain = umbrellaGain
-	if(hasUpgrade("r",14)) {r_coins_gain = r_coins_gain.times(upgradeEffect("r",14))}
+	if (hasUpgrade("r", 14)) { r_coins_gain = r_coins_gain.times(upgradeEffect("r", 14)) }
+	if (hasUpgrade("r", 32)) { r_coins_gain = r_coins_gain.times(upgradeEffect("r", 32)) }
 	player.r.r_coins = player.r.r_coins.add(r_coins_gain.times(dt))
+}
+
+function other_tick_things() {
+	if (hasMilestone("r", 4)) {
+		player.w.puddleSize = player.w.points.div(10)
+		player.w.pondSize = player.w.points.div(1e6)
+	}
 }
