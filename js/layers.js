@@ -18,6 +18,8 @@ addLayer("e", {
     color: "#FFFFAA",
     requires: new ExpantaNum(10), // Can be a function that takes requirement increases into account
     resource: "energy", // Name of prestige currency
+    passiveGeneration() { return hasMilestone("r", 1) ? 1 : 0 },
+    autoUpgrade() { return hasMilestone("r", 2)},
     baseResource: "points", // Name of resource prestige is based on
     baseAmount() { return player.points }, // Get the current amount of baseResource
     type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
@@ -51,7 +53,9 @@ addLayer("e", {
             description: "time since reset boosts points gain",
             cost: new ExpantaNum(1),
             effect() {
-                s = new ExpantaNum(player.e.resetTime).pow(0.25).add(1)
+                s = new ExpantaNum(player.e.resetTime)
+                if (hasMilestone("r", 11)) {s = s.times(2.5)}
+                s = s.pow(0.25).add(1)
                 if (hasUpgrade("w", 22)) { s = s.pow(2) }
                 if (hasUpgrade("w", 23)) { s = s.pow(1.5) }
                 if (player.w.puddleSize.gte(0)) {s = s.pow(clickableEffect("w",21))}
@@ -105,11 +109,26 @@ addLayer("w", {
     resource: "water", // Name of prestige currency
     baseResource: "energy", // Name of resource prestige is based on
     baseAmount() { return player.e.points }, // Get the current amount of baseResource
+    onPrestige() {
+        if (hasMilestone("r", 3)) {
+            addWatering(0)
+            addWatering(1)
+            addWatering(2)
+        }
+    },
     type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
     exponent: 0.4, // Prestige currency exponent
+    staticGeneration() {
+        e = hasMilestone("r", 0) ? player.r.points : new ExpantaNum(0)
+        if (hasMilestone("r", 2)) {
+            e = e.pow(5)
+        }
+        return e
+    },
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new ExpantaNum(1)
-        mult = mult.times(clickableEffect("w",13))
+        mult = mult.times(clickableEffect("w", 13))
+        if (hasUpgrade("w",13)){mult = mult.times(upgradeEffect("r",13))}
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -120,7 +139,7 @@ addLayer("w", {
         { key: "w", description: "W: Reset for water", onPress() { if (canReset(this.layer)) doReset(this.layer) } },
     ],
     branches: ["e"],
-    layerShown() { return hasUpgrade("e", 14) || player.w.points.gte(1) },
+    layerShown() { return hasUpgrade("e", 14) || player.w.points.gte(1) || player.r.points.gte(1) },
     tabFormat: {
         "Main": {
             content: [
@@ -344,10 +363,12 @@ addLayer("r", {
     startData() {
         return {
             points: new ExpantaNum(0),
+            umbrellas: new OmegaNum(0),
+            r_coins: new OmegaNum(0),
             unlocked: true,
         }
     },
-    color: "#4444FF",
+    color: "#3344FF",
     requires: new ExpantaNum(1e20), // Can be a function that takes requirement increases into account
     resource: "rain", // Name of prestige currency
     baseResource: "water", // Name of resource prestige is based on
@@ -361,12 +382,105 @@ addLayer("r", {
     gainExp() { // Calculate the exponent on main currency from bonuses
         return new ExpantaNum(1)
     },
-    row: 1, // Row the layer is in on the tree (0 is the first row)
+    row: 2, // Row the layer is in on the tree (0 is the first row)
     hotkeys: [
         { key: "r", description: "R: Reset for rain", onPress() { if (canReset(this.layer)) doReset(this.layer) } },
     ],
     branches: ["w"],
-    layerShown() { return hasUpgrade("w",52) || player.w.points.gte(1) }
+    tabFormat: {
+        "Main": {
+            "content":
+                ["main-display",
+                    ["display-text", function () { return "Equals to a rain rate of " + format(getRain(player.r.points)) + "mm/h" }],
+                    "prestige-button",
+                    "milestones"],
+        },
+        "Umbrellas": {
+            "content":
+                ["main-display",
+                    ["display-text", function () { return "Equals to a rain rate of " + format(getRain(player.r.points)) + "mm/h" }],
+                    "prestige-button",
+                    ["display-text", function () {
+                        return "The rain is making people buy umbrellas! You get R-coins from it.<br>" +
+                            "You have " + format(player.r.r_coins) + " R-coins<br> You have sold " +
+                        format(player.r.umbrellas) + " umbrellas"
+                    }
+                    ],
+                    "buyables",
+                    "upgrades"]
+        }
+    },
+    layerShown() {
+        return hasUpgrade("w", 51) || player.r.points.gte(1) 
+    },
+    milestones: {
+        0: {
+            requirementDescription: "1 rain droplets",
+            effectDescription: "Based on rain droplets, gain water per second (unaffected by multipliers)<br>Also, x2.5 timespeed of energy layer",
+            done(){return player.r.points.gte(0.9999)}
+        },
+        1: {
+            requirementDescription: "2 rain droplets",
+            effectDescription: "Automatically gain 100% of energy/s",
+            done() { return player.r.points.gte(1.9999) }
+        },
+        2: {
+            requirementDescription: "3 rain droplets",
+            effectDescription: "Milestone 1\'s 1st effect ^5, automate energy upgrades<br>Unlocks umbrellas",
+            done() { return player.r.points.gte(3) }
+        },
+        3: {
+            requirementDescription: "5 total rain droplets",
+            effectDescription: "Automatically assign droplets to the three places upon a water reset.",
+            done() { return player.r.total.gte(5) }
+        }
+    },
+    buyables: {
+        11: {
+            title: "Shop",
+            display() { return "Buy a shop to sell umbrellas! Cost: "+format(this.cost()) +" rain<br><br>This gets boosted by rain rate. (x"+format(buyableEffect("r",11))+")<br><br>You currently have "+format(getBuyableAmount(this.layer,this.id)) +" shops."},
+            cost(x) { return new OmegaNum(3).pow(x) },
+            canAfford() { return player[this.layer].points.gte(this.cost()) },
+            buy() {
+                player[this.layer].points = player[this.layer].points.sub(this.cost())
+                setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(1))
+            },
+            effect(){ return getRain(player.r.points) }
+        }
+    },
+    upgrades: {
+        11: {
+            fullDisplay() { return "<h3>Red umbrella</h3><br>Points are boosted by umbrellas sold.<br>Cost: 50 umbrellas<br>Currently: x" + format(this.effect()) },
+            canAfford() { return player.r.umbrellas.gte(50) },
+            pay() { player.r.umbrellas = player.r.umbrellas.sub(50) },
+            effect(){return player.r.umbrellas.pow(2.5).add(1)}
+        },
+        12: {
+            fullDisplay() { return "<h3>Orange umbrella</h3><br>R-coins boost umbrellas (also boosts R-coins actually)<br>Cost: 100 R-coins<br>Currently: x" + format(this.effect()) },
+            canAfford() { return player.r.r_coins.gte(100) },
+            pay() { player.r.r_coins = player.r.r_coins.sub(100) },
+            effect() { return player.r.r_coins.pow(0.25).add(1) }
+        },
+        13: {
+            fullDisplay() { return "<h3>Yellow umbrella</h3><br>R-coins boost water<br>Cost: 1,500 R-coins<br>Currently: x" + format(this.effect()) },
+            canAfford() { return player.r.r_coins.gte(1500) },
+            pay() { player.r.r_coins = player.r.r_coins.sub(1500) },
+            effect() { return player.r.r_coins.pow(0.5).add(1) }
+        },
+        14: {
+            fullDisplay() { return "<h3>Green umbrella</h3><br>R-coins are boosted by points<br>Cost: 5,000 R-coins<br>Currently: x" + format(this.effect()) },
+            canAfford() { return player.r.r_coins.gte(5000) },
+            pay() { player.r.r_coins = player.r.r_coins.sub(5000) },
+            effect() { return player.points.log(10).pow(4).div(1e9).add(1) }
+        },
+        21: {
+            title: "Ripples",
+            description: "they evolve. Rain boosts energy.",
+            cost: new OmegaNum(8),
+            effect() { return player.r.points.add(2).pow(9) },
+            effectDisplay() {return "x"+format(this.effect())}
+        }
+    }
 }
 
 )

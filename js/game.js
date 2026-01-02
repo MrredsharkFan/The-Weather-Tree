@@ -186,6 +186,10 @@ function generatePoints(layer, diff) {
 	addPoints(layer, tmp[layer].resetGain.times(diff))
 }
 
+function generatePointsStatic(layer, diff, c) {
+	addPoints(layer, c.times(diff))
+}
+
 var prevOnReset
 
 function doReset(layer, force=false) {
@@ -358,7 +362,8 @@ function gameLoop(diff) {
 		for (item in TREE_LAYERS[x]) {
 			let layer = TREE_LAYERS[x][item]
 			player[layer].resetTime += diff
-			if (tmp[layer].passiveGeneration) generatePoints(layer, diff*tmp[layer].passiveGeneration);
+			if (tmp[layer].passiveGeneration) generatePoints(layer, diff * tmp[layer].passiveGeneration);
+			if (tmp[layer].staticGeneration) generatePointsStatic(layer, diff, tmp[layer].staticGeneration);
 			if (layers[layer].update) layers[layer].update(diff);
 		}
 	}
@@ -439,6 +444,18 @@ var interval = setInterval(function() {
 	adjustPopupTime(trueDiff)
 	updateParticles(trueDiff)
 	ticking = false
+	umbrellaTick(diff)
 }, 50)
 
-setInterval(function() {needCanvasUpdate = true}, 500)
+setInterval(function () { needCanvasUpdate = true }, 500)
+
+function umbrellaTick(dt) {
+	var umbrellaGain = player.r.buyables[11]
+	umbrellaGain = umbrellaGain.times(buyableEffect("r", 11))
+	if (hasUpgrade("r", 12)) { umbrellaGain = umbrellaGain.times(upgradeEffect("r", 12)) }
+	player.r.umbrellas = player.r.umbrellas.add(umbrellaGain.times(dt))
+
+	var r_coins_gain = umbrellaGain
+	if(hasUpgrade("r",14)) {r_coins_gain = r_coins_gain.times(upgradeEffect("r",14))}
+	player.r.r_coins = player.r.r_coins.add(r_coins_gain.times(dt))
+}
