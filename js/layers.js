@@ -12,8 +12,8 @@ addLayer("e", {
         "softcaps":
         {
             title: "why is this section so fast",
-            body: "first, the gain before 1e10 is LINEAR to points, and <br>of course there is a ^0.5 softcap at 1e10" 
-        }
+            body: "first, the gain before 1e10 is LINEAR to points, and <br>of course there is a ^0.5 softcap at 1e10<br><br>ALSO, U13 is softcapped beyond 1e24"
+        },
     },
     color: "#FFFFAA",
     requires: new ExpantaNum(10), // Can be a function that takes requirement increases into account
@@ -64,7 +64,12 @@ addLayer("e", {
             title: "let me do something",
             description: "energy boosts points gain",
             cost: new ExpantaNum(2),
-            effect() { return player.e.points.add(4).pow(0.5) },
+            effect() {
+                s = player.e.points.add(4).pow(0.5)
+                if (hasUpgrade("w", 42)) { s = s.pow(clickableEffect("w", 22)) }
+                if (s.gte(1e24)) {s = s.div(1e14).log(10).pow(24).div(1e9).add(1e24)}
+                return s
+            },
             effectDisplay() {return "x"+format(this.effect())}
         },
         14: {
@@ -91,7 +96,8 @@ addLayer("w", {
             unlocked: true,
             points: new ExpantaNum(0),
             waterings: [new ExpantaNum(0), new ExpantaNum(0), new ExpantaNum(0)],
-            puddleSize: new ExpantaNum(0)
+            puddleSize: new ExpantaNum(0),
+            pondSize: new ExpantaNum(0)
         }
     },
     color: "#8888FF",
@@ -143,7 +149,12 @@ addLayer("w", {
                 "prestige-button",
                 ["display-text", function () {
                     return "your puddle has a volume of " + format(player.w.puddleSize) + "cm^3.<h6> don't worry! this puddle is contained within a really large box, so it won\'t affect residence.</h6>" +
-                    "<br> This exponentiates <b>2nd Generator</b>\'s effect by "+format(clickableEffect("w",21))
+                    "This exponentiates <b>2nd Generator</b>\'s effect by "+format(clickableEffect("w",21))
+                }],
+                "blank",
+                ["display-text", function () {
+                    return hasUpgrade("w",42)?"your pond has a volume of " + format(player.w.pondSize) + "m^3.<h6> also allows a large amount of squashy ducks.</h6>" +
+                        "This exponentiates <b>let me do something</b>\'s effect by " + format(clickableEffect("w", 22)):null
                 }],
                 "clickables"
                 ],
@@ -221,6 +232,24 @@ addLayer("w", {
             title: "stop watering us vro",
             description: "grass drops filled\'s effect ^2",
             cost: new ExpantaNum(23333330)
+        },
+        41: {
+            unlocked() { return hasUpgrade('w', 33) },
+            title: "really large puddle",
+            description: "puddle effect ^2",
+            cost: new ExpantaNum(3e10)
+        },
+        42: {
+            unlocked() { return hasUpgrade('w', 41) },
+            title: "pond",
+            description: "unlocks a new puddle",
+            cost: new ExpantaNum(1e12)
+        },
+        51: {
+            unlocked() { return hasUpgrade("w", 42) },
+            title: "progression in weather",
+            description: "unlocks <i>rain</i>",
+            cost: new ExpantaNum("1e20")
         }
     },
     clickables: {
@@ -236,6 +265,9 @@ addLayer("w", {
                 e = player.w.waterings[0].pow(1 / 2).add(1)
                 if (hasUpgrade("w", 33)) {
                     e = e.pow(2)
+                }
+                if (e.gte(1e9)) {
+                    e = e.pow(1/3).times(1e6)
                 }
                 return e
             }
@@ -253,6 +285,7 @@ addLayer("w", {
                 if (hasUpgrade("w", 32)) {
                     e = e.pow(2)
                 }
+                if (e.gte(1e8)){e = e.pow(0.5).times(1e4)}
                 return e
             }
         },
@@ -280,8 +313,60 @@ addLayer("w", {
                 player.w.points = new ExpantaNum(0)
             },
             effect() {
-                return player.w.puddleSize.div(1000).add(1).log().add(1).log().div(2.5).add(1)
+                e = player.w.puddleSize.div(1000).add(1).log().add(1).log().div(2.5).add(1)
+                if (hasUpgrade("w",41)){e = e.pow(2)}
+                return e
+            }
+        },
+        22: {
+            title: "the pond",
+            display: function () { return "expand your pond (uses all your water)" },
+            unlocked() { return hasUpgrade("w", 42) && player.subtabs.w.mainTabs == "Puddle" },
+            canClick() { return player.w.points.gte(1) },
+            onClick() {
+                player.w.pondSize = player.w.pondSize.add(player.w.points.div(1e6))
+                player.w.points = new ExpantaNum(0)
+            },
+            effect() {
+                e = player.w.pondSize.div(1000).add(1).log().add(1).log().pow(0.5)
+                return e
             }
         }
     }
 })
+
+//fun parts coming up!
+
+addLayer("r", {
+    name: "Rain", // This is optional, only used in a few places, If absent it just uses the layer id.
+    symbol: "R", // This appears on the layer's node. Default is the id with the first letter capitalized
+    position: 0, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    startData() {
+        return {
+            points: new ExpantaNum(0),
+            unlocked: true,
+        }
+    },
+    color: "#4444FF",
+    requires: new ExpantaNum(1e20), // Can be a function that takes requirement increases into account
+    resource: "rain", // Name of prestige currency
+    baseResource: "water", // Name of resource prestige is based on
+    baseAmount() { return player.w.points }, // Get the current amount of baseResource
+    type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+    exponent: 0.05, // Prestige currency exponent
+    gainMult() { // Calculate the multiplier for main currency from bonuses
+        mult = new ExpantaNum(1)
+        return mult
+    },
+    gainExp() { // Calculate the exponent on main currency from bonuses
+        return new ExpantaNum(1)
+    },
+    row: 1, // Row the layer is in on the tree (0 is the first row)
+    hotkeys: [
+        { key: "r", description: "R: Reset for rain", onPress() { if (canReset(this.layer)) doReset(this.layer) } },
+    ],
+    branches: ["w"],
+    layerShown() { return hasUpgrade("w",52) || player.w.points.gte(1) }
+}
+
+)
