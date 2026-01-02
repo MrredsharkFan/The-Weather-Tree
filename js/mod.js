@@ -48,6 +48,7 @@ function getPointGen() {
 	if (hasUpgrade("w", 12)) { gain = gain.times(clickableEffect("w", 11)) }
 	if (hasUpgrade("r", 11)) { gain = gain.times(upgradeEffect("r", 11)) }
 	if (hasUpgrade("r", 21)) { gain = gain.times(upgradeEffect("r", 21)) }
+	if (hasUpgrade("h", 14)) { gain = gain.pow(upgradeEffect("h", 14)) }
 	return gain
 }
 
@@ -98,5 +99,20 @@ function getRain(j) {
 	if (e.gte(30)) {
 		e = e.div(3).slog().times(30)
 	}
+	if (hasUpgrade("h", 22)) {
+		e = e.times(upgradeEffect("h",22))
+	}
 	return e
+}
+
+function getHeat(j) {
+	e = j.add(1).log(10).add(1).log(10)
+	if (e.gte(10)) {
+		e = e.slog().times(10)
+	}
+	if (e.gte(20)) {
+		//e = e.i have fucking no idea(10)
+	}
+	e = e.add(buyableEffect("h",11))
+	return e.add(28)
 }

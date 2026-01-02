@@ -445,7 +445,7 @@ var interval = setInterval(function() {
 	updateParticles(trueDiff)
 	ticking = false
 	umbrellaTick(diff)
-	other_tick_things()
+	other_tick_things(diff)
 }, 50)
 
 setInterval(function () { needCanvasUpdate = true }, 500)
@@ -463,9 +463,17 @@ function umbrellaTick(dt) {
 	player.r.r_coins = player.r.r_coins.add(r_coins_gain.times(dt))
 }
 
-function other_tick_things() {
+function other_tick_things(dt) {
 	if (hasMilestone("r", 4)) {
 		player.w.puddleSize = player.w.points.div(10)
 		player.w.pondSize = player.w.points.div(1e6)
+	}
+	if (hasMilestone("r", 6)) {
+		player.w.waterings[0] = player.w.points
+		player.w.waterings[1] = player.w.points
+		player.w.waterings[2] = player.w.points
+	}
+	if (hasUpgrade("r", 34)) {
+		player.w.riverSize = player.w.riverSize.add(upgradeEffect("r",34).times(dt))
 	}
 }

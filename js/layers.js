@@ -29,7 +29,8 @@ addLayer("e", {
         if (hasUpgrade("w", 11)) { mult = mult.times(2) }
         if (hasUpgrade("w", 13)) { mult = mult.times(2) }
         mult = mult.times(clickableEffect("w", 12))
-        if (hasUpgrade("w", 15)) { mult = mult.times(upgradeEffect("w",15)) }
+        if (hasUpgrade("w", 15)) { mult = mult.times(upgradeEffect("w", 15)) }
+        if (hasUpgrade("h", 12)) { mult = mult.times(upgradeEffect("h", 12)) }
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -55,7 +56,8 @@ addLayer("e", {
             effect() {
                 s = new ExpantaNum(player.e.resetTime)
                 if (hasMilestone("r", 11)) { s = s.times(2.5) }
-                if (hasUpgrade("r", 24)) { s = s.times(clickableEffect("w",23)) }
+                if (hasUpgrade("r", 24)) { s = s.times(clickableEffect("w", 23)) }
+                if (hasUpgrade("h", 13)) { s = s.times(upgradeEffect("h",13)) }
                 s = s.pow(0.25).add(1)
                 if (hasUpgrade("w", 22)) { s = s.pow(2) }
                 if (hasUpgrade("w", 23)) { s = s.pow(1.5) }
@@ -86,7 +88,7 @@ addLayer("e", {
         15: {
             unlocked() { return hasUpgrade("e", 14) },
             title: "why did u double this",
-            description: "double the effect of <b>conversion</b> [WIP]",
+            description: "double the effect of <b>conversion</b> (basically unlocks another layer)",
             cost: new ExpantaNum("1.5e150")
         }
 },
@@ -130,10 +132,14 @@ addLayer("w", {
         }
         return e
     },
+    passiveGeneration() {
+        return (hasMilestone("r",6))?1:0
+    },
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new ExpantaNum(1)
         mult = mult.times(clickableEffect("w", 13))
-        if (hasUpgrade("w",13)){mult = mult.times(upgradeEffect("r",13))}
+        if (hasUpgrade("w", 13)) { mult = mult.times(upgradeEffect("r", 13)) }
+        if (hasUpgrade("h", 11)) { mult = mult.times(upgradeEffect("h", 11)) }
         return mult
     },
     autoUpgrade(){return hasMilestone("r",5)},
@@ -360,6 +366,7 @@ addLayer("w", {
             },
             effect() {
                 e = player.w.pondSize.div(1000).add(1).log().add(1).log().pow(0.5)
+                if (hasUpgrade("h",23)){e = e.pow(2)}
                 return e
             }
         },
@@ -472,6 +479,11 @@ addLayer("r", {
             requirementDescription: "10,000 total rain droplets",
             effectDescription: "Automate water upgrades.",
             done() { return player.r.total.gte(10000) }
+        },
+        6: {
+            requirementDescription: "1.000e10 total rain droplets",
+            effectDescription: "Gain 100% of water/s. The three dropletty places are automatically assigned costs.",
+            done() { return player.r.total.gte(1e10) }
         }
     },
     buyables: {
@@ -558,15 +570,30 @@ addLayer("r", {
             title: "advertising",
             description: "rain rate has a stronger influence on umbrella gain (e^x)",
             cost: new OmegaNum(1000),
+        },
+        34: {
+            unlocked() { return hasUpgrade("r", 33) },
+            title: "overland flow",
+            description: "gain river water volume based on rain rate",
+            cost: new OmegaNum(1e14),
+            effect() {
+                e = getRain(player.w.points).pow(2)
+                if (hasUpgrade("h",24)){e = e.pow(1.5)}
+                return e
+            },
+            effectDisplay(){return format(this.effect())+"/s"},
         }
     }
 }
 
+    
+    
+//here comes the SECOND branch!!!!
 )
 addLayer("h", {
-    name: "Heat", // This is optional, only used in a few places, If absent it just uses the layer id.
-    symbol: "H", // This appears on the layer's node. Default is the id with the first letter capitalized
-    position: 1, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    name: "Heat", 
+    symbol: "H", 
+    position: 1, 
     startData() {
         return {
             unlocked: true,
@@ -574,12 +601,12 @@ addLayer("h", {
         }
     },
     color: "#FF9900",
-    requires: new ExpantaNum(1e150), // Can be a function that takes requirement increases into account
-    resource: "heat", // Name of prestige currency
-    baseResource: "energy", // Name of resource prestige is based on
-    baseAmount() { return player.e.points }, // Get the current amount of baseResource
-    type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
-    exponent: 0.02, // Prestige currency exponent
+    requires: new ExpantaNum(1e150), 
+    resource: "heat", 
+    baseResource: "energy", 
+    baseAmount() { return player.e.points }, 
+    type: "normal", 
+    exponent: 0.02, 
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new ExpantaNum(1)
         return mult
@@ -591,6 +618,94 @@ addLayer("h", {
     hotkeys: [
         { key: "h", description: "H: Reset for heat", onPress() { if (canReset(this.layer)) doReset(this.layer) } },
     ],
-    layerShown() { return true },
+    layerShown() { return hasUpgrade("e",15) || player.h.points.gte(1) },
     branches: ["e"],
+    tabFormat: [
+        "main-display",
+        "prestige-button",
+        ["display-text", function () { return "this equates to a temperature of "+format(getHeat(player.h.points))+" *C" }],
+        "upgrades",
+        "blank",
+        "buyables"
+    ],
+    upgrades: {
+        11: {
+            title: "getting a bit heated up!",
+            description: "Heat boosts water gain",
+            cost: new ExpantaNum(1),
+            effect() { return player.h.points.add(2).pow(5) },
+            effectDisplay(){return "x"+format(this.effect())}
+        },
+        12: {
+            title: "active atoms",
+            description: "Heat boosts energy gain",
+            cost: new ExpantaNum(10),
+            effect() { return player.h.points.add(1).pow(8) },
+            effectDisplay() { return "x" + format(this.effect()) }
+        },
+        13: {
+            title: "Accelration",
+            description: "<b>2nd Generation</b>\'s timespeed is boosted by temperature.",
+            cost: new ExpantaNum(30),
+            effect() { 
+                e = getHeat(player.h.points)
+                e = e.sub(27).pow(6)
+                return e
+             },
+            effectDisplay() { return "x" + format(this.effect()) }
+        },
+        14: {
+            title: "Heated pionts",
+            description: "Temperature exponentiates point gain",
+            cost: new ExpantaNum(1000),
+            effect() {
+                e = getHeat(player.h.points)
+                e = e.sub(28).div(10).add(1).pow(0.16)
+                return e
+            },
+            effectDisplay() { return "^" + format(this.effect(),5) }
+        },
+        21: {
+            title: "Oil industry",
+            description: "Unlocks a buyable",
+            cost: new ExpantaNum(201511210),
+        },
+        22: {
+            unlocked(){return hasUpgrade("h",21)},
+            title: "Sudden intensification",
+            description: "Global warming boosts rain rate",
+            cost: new ExpantaNum(1e9),
+            effect() {
+                return getBuyableAmount("h",11).add(1).pow(0.12)
+            },
+            effectDisplay() {return "x"+format(this.effect())}
+        },
+        23: {
+            unlocked() { return hasUpgrade("h", 21) },
+            title: "Pond Travel",
+            description: "Pond effect ^2",
+            cost: new ExpantaNum(1e10)
+        },
+        24: {
+            unlocked() { return hasUpgrade("h", 23) },
+            title: "Sudden flows",
+            description: "<b>Overland Flow</b>\'s effect ^1.5",
+            cost: new ExpantaNum(1e11)
+        }
+    },
+    buyables: {
+        11: {
+            title: "Global warming",
+            display() { return "By emitting some oil, the temperature increases. <br>Cost: " + format(this.cost(getBuyableAmount(this.layer, this.id)))+"<br>Currently: +" +format(buyableEffect(this.layer,this.id),5) },
+            cost(x) {
+                return new ExpantaNum(2).pow(x).times(1e8)
+            },
+            canAfford() { return player[this.layer].points.gte(this.cost(getBuyableAmount(this.layer, this.id))) },
+            buy() {
+                player[this.layer].points = player[this.layer].points.sub(this.cost(getBuyableAmount(this.layer, this.id)))
+                setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(1))
+            },
+            effect(){return getBuyableAmount(this.layer, this.id).add(1).log(10).add(1).pow(0.25).sub(1)}
+        }
+    }
 })
