@@ -409,6 +409,9 @@ addLayer("r", {
     baseAmount() { return player.w.points }, // Get the current amount of baseResource
     type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
     exponent: 0.05, // Prestige currency exponent
+    passiveGeneration() {
+        return (hasMilestone("r",7)?1:0)
+    },
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new ExpantaNum(1)
         return mult
@@ -484,6 +487,11 @@ addLayer("r", {
             requirementDescription: "1.000e10 total rain droplets",
             effectDescription: "Gain 100% of water/s. The three dropletty places are automatically assigned costs.",
             done() { return player.r.total.gte(1e10) }
+        },
+        7: {
+            requirementDescription: "1.000e20 total rain droplets",
+            effectDescription: "Gain 100% of rain/s.",
+            done() { return player.r.total.gte(1e20) }
         }
     },
     buyables: {
@@ -578,7 +586,8 @@ addLayer("r", {
             cost: new OmegaNum(1e14),
             effect() {
                 e = getRain(player.w.points).pow(2)
-                if (hasUpgrade("h",24)){e = e.pow(1.5)}
+                if (hasUpgrade("h", 24)) { e = e.pow(1.5) }
+                if (hasUpgrade("h", 51)) { e = e.pow(1.5) }
                 return e
             },
             effectDisplay(){return format(this.effect())+"/s"},
@@ -598,6 +607,12 @@ addLayer("h", {
         return {
             unlocked: true,
             points: new ExpantaNum(0),
+            oil: new ExpantaNum(0),
+            lc: 0,
+            lc2: 0,
+            lc3: 0,
+            lc4: 0,
+            lc5: 0
         }
     },
     color: "#FF9900",
@@ -620,14 +635,28 @@ addLayer("h", {
     ],
     layerShown() { return hasUpgrade("e",15) || player.h.points.gte(1) },
     branches: ["e"],
-    tabFormat: [
-        "main-display",
-        "prestige-button",
-        ["display-text", function () { return "this equates to a temperature of "+format(getHeat(player.h.points))+" *C" }],
-        "upgrades",
-        "blank",
-        "buyables"
-    ],
+    tabFormat: {
+        "Main": {
+            content: [
+            "main-display",
+            "prestige-button",
+            ["display-text", function () { return "this equates to a temperature of " + format(getHeat(player.h.points),5) + " *C" }],
+            ["upgrades","123"],
+            "blank",
+            "buyables"
+            ]
+        },
+        "Extraction": {
+            unlocked(){return hasUpgrade("h",32)},
+            content: [
+                "main-display",
+                "prestige-button",
+                ["display-text",function(){return "You have extracted "+format(player.h.oil)+"kg of oil, translating to *"+format(clickableEffect("h",11),5)+" global warming effect."}],
+                ["upgrades", "45"],
+                "clickables"
+            ]
+        }
+},
     upgrades: {
         11: {
             title: "getting a bit heated up!",
@@ -691,7 +720,73 @@ addLayer("h", {
             title: "Sudden flows",
             description: "<b>Overland Flow</b>\'s effect ^1.5",
             cost: new ExpantaNum(1e11)
-        }
+        },
+        31: {
+            unlocked() { return hasUpgrade("h", 24) },
+            title: "Monentary impact",
+            description: "R-coins boost the effect of <b>Global Warming</b>",
+            cost: new ExpantaNum(1e12),
+            effect() {
+                return player.r.r_coins.add(2).log(10).add(1).log(10).div(10).add(1)
+            },
+            effectDisplay() { return "x" + format(this.effect()) }
+        },
+        32: {
+            unlocked(){return hasUpgrade("h",31)},
+            title: "Fossil fuels",
+            description: "Unlock the drilling of materials",
+            cost: new ExpantaNum(1e14)
+        },
+        41: {
+            unlocked() { return hasUpgrade("h", 32)},
+            title: "Oil company",
+            description: "Enable the manual extraction of oil.",
+            cost: new ExpantaNum(1e13)
+        },
+        42: {
+            unlocked() { return hasUpgrade("h", 41) },
+            fullDisplay(){return "<h3>Better oil rigs</h3><br>x2 Oil/extraction.<br><br>Cost: 0.5kg Oil"},
+            canAfford() { return player.h.oil.gte(0.5) },
+            pay(){player.h.oil = player.h.oil.sub(0.5)}
+        },
+        43: {
+            unlocked() { return hasUpgrade("h", 42) },
+            fullDisplay() { return "<h3>Violent Digging</h3><br>Temperature boosts Oil gain.<br><br>Cost: 1.25kg Oil<br>Currently: x"+format(this.effect()) },
+            effect() { return getHeat(player.h.points).sub(30).max(1).pow(2) },
+            canAfford() { return player.h.oil.gte(1.25) },
+            pay() { player.h.oil = player.h.oil.sub(1.25) }
+        },
+        44: {
+            unlocked() { return hasUpgrade("h", 43) },
+            fullDisplay() { return "<h3>Rarer Oils</h3><br>Unlocks 2 new oil clickables.<br><br>Cost: 10kg Oil" },
+            canAfford() { return player.h.oil.gte(10) },
+            pay() { player.h.oil = player.h.oil.sub(10) }
+        },
+        45: {
+            unlocked() { return hasUpgrade("h", 41) },
+            title: "Check back v2",
+            description: "Double the effect of <b>Rarer Oils</b>",
+            cost: new ExpantaNum(1e24),
+            pay() {
+                lc5 = Date.now() + 60000
+                lc4 = Date.now() + 3000
+            }
+        },
+        51: {
+            unlocked() { return hasUpgrade("h", 44) },
+            fullDisplay() { return "<h3>Evil CEOs</h3><br><b>Overland Flow</b> effect ^1.5 again<br><br>Cost: 100kg Oil" },
+            canAfford() { return player.h.oil.gte(100) },
+            pay() { player.h.oil = player.h.oil.sub(100) }
+        },
+        52: {
+            unlocked() { return hasUpgrade("h", 44) },
+            fullDisplay() { return "<h3>Demand</h3><br>Shops boost the effect of <b>Global Warming</b><br><br>Cost: 100kg Oil<br>Effect: *"+format(this.effect()) },
+            canAfford() { return player.h.oil.gte(100) },
+            pay() {
+                player.h.oil = player.h.oil.sub(100)
+             },
+            effect(){return getBuyableAmount("r",11).add(1).pow(0.3).div(10).add(1)}
+        },
     },
     buyables: {
         11: {
@@ -705,7 +800,76 @@ addLayer("h", {
                 player[this.layer].points = player[this.layer].points.sub(this.cost(getBuyableAmount(this.layer, this.id)))
                 setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(1))
             },
-            effect(){return getBuyableAmount(this.layer, this.id).add(1).log(10).add(1).pow(0.25).sub(1)}
+            effect() {
+                e = getBuyableAmount(this.layer, this.id).add(1).log(10).add(1).pow(0.25).sub(1)
+                if (hasUpgrade("h", 31)) {
+                    e = e.times(upgradeEffect("h",31))
+                }
+                if (hasUpgrade("h", 41)) {
+                    e = e.times(clickableEffect("h",11))
+                }
+                if (hasUpgrade("h", 52)) {
+                    e = e.times(upgradeEffect("h", 52))
+                }
+                return e
+            },
+            unlocked(){return hasUpgrade("h",21)}
+        }
+    },
+    clickables: {
+        11: {
+            title() { return "Click to get oil! (" + Math.max(0,500-(Date.now() - player.h.lc)) + "ms left)" },
+            unlocked() { return hasUpgrade("h", 41) },
+            canClick() { return (Date.now()-player.h.lc>500) },
+            onClick() {
+                g = getBaseOilGain()
+                player.h.oil = player.h.oil.add(g)
+                player.h.lc = Date.now()
+            },
+            effect() {
+                e = player.h.oil.add(1).log().add(1).log().add(1)
+                return e
+            }
+        },
+        12: {
+            title() { return "Click to get oil![10x] (" + Math.max(0, 5000 - (Date.now() - player.h.lc2)) + "ms left)" },
+            unlocked() { return hasUpgrade("h", 44) },
+            canClick() { return (Date.now() - player.h.lc2 > 5000) },
+            onClick() {
+                g = getBaseOilGain()
+                player.h.oil = player.h.oil.add(g.times(10))
+                player.h.lc2 = Date.now()
+            }
+        },
+        13: {
+            title() { return "Click to get oil![100x] (" + Math.max(0, 30000 - (Date.now() - player.h.lc3)) + "ms left)" },
+            unlocked() { return hasUpgrade("h", 44) },
+            canClick() { return (Date.now() - player.h.lc3 > 30000) },
+            onClick() {
+                g = getBaseOilGain()
+                player.h.oil = player.h.oil.add(g.times(100))
+                player.h.lc3 = Date.now()
+            }
+        },
+        14: {
+            title() { return "Click to get oil![1,000x] (" + Math.max(0, 120000 - (Date.now() - player.h.lc4))/1000 + "s left)" },
+            unlocked() { return hasUpgrade("h", 45) },
+            canClick() { return (Date.now() - player.h.lc4 > 120000) },
+            onClick() {
+                g = getBaseOilGain()
+                player.h.oil = player.h.oil.add(g.times(1000))
+                player.h.lc4 = Date.now()
+            }
+        },
+        15: {
+            title() { return "Click to get oil![10,000x] (" + Math.max(0, 600000 - (Date.now() - player.h.lc5)) / 1000 + "s left)" },
+            unlocked() { return hasUpgrade("h", 45) },
+            canClick() { return (Date.now() - player.h.lc5 > 600000) },
+            onClick() {
+                g = getBaseOilGain()
+                player.h.oil = player.h.oil.add(g.times(1000))
+                player.h.lc5 = Date.now()
+            }
         }
     }
 })

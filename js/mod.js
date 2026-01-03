@@ -116,3 +116,12 @@ function getHeat(j) {
 	e = e.add(buyableEffect("h",11))
 	return e.add(28)
 }
+
+function getBaseOilGain() {
+	g = new ExpantaNum(0.01)
+	if (hasUpgrade("h", 42)) { g = g.times(2) }
+	if (hasUpgrade("h", 43)) {
+		g = g.times(upgradeEffect("h", 43))
+	}
+	return g
+}
