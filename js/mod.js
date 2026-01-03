@@ -49,6 +49,7 @@ function getPointGen() {
 	if (hasUpgrade("r", 11)) { gain = gain.times(upgradeEffect("r", 11)) }
 	if (hasUpgrade("r", 21)) { gain = gain.times(upgradeEffect("r", 21)) }
 	if (hasUpgrade("h", 14)) { gain = gain.pow(upgradeEffect("h", 14)) }
+	if (hasUpgrade("A", 22)) { gain = gain.times(upgradeEffect("A", 22)) }
 	return gain
 }
 
@@ -113,8 +114,26 @@ function getHeat(j) {
 	if (e.gte(20)) {
 		//e = e.i have fucking no idea(10)
 	}
-	e = e.add(buyableEffect("h",11))
+	e = e.add(buyableEffect("h", 11))
+	if (hasUpgrade("C",13)){e = e.add(upgradeEffect("C",13))}
 	return e.add(28)
+}
+
+function getCold(j) {
+	e = j.add(1).log().add(1).log()
+	if (e.gte(20)){
+		e = e.div(2).slog().times(20)
+	}
+	if (hasUpgrade("C", 14)) { e = e.add(upgradeEffect("C", 14)) }
+	if (hasUpgrade("C",21)){e = e.add(upgradeEffect("C",21))}
+	e = new ExpantaNum(20).sub(e)
+	return e
+}
+
+function get_clothing_effect(n=getTotalClothPower()) {
+	e = new ExpantaNum(20).sub(n.add(1).pow(0.4).times(2))
+	f = new ExpantaNum(10).pow(n.pow(1.25).add(1)).add(1)
+	return [e,f]
 }
 
 function getBaseOilGain() {
@@ -122,6 +141,17 @@ function getBaseOilGain() {
 	if (hasUpgrade("h", 42)) { g = g.times(2) }
 	if (hasUpgrade("h", 43)) {
 		g = g.times(upgradeEffect("h", 43))
+	}
+	return g
+}
+
+function getTotalClothPower() {
+	g = new ExpantaNum(0)
+	upg = [911,912,913,914,915,921,922,923,924,925,931,932,933,934,935]
+	for (let i in upg) {
+		if (hasUpgrade("C",upg[i])) {
+			g = g.add(upgradeEffect("C",upg[i]))
+		}
 	}
 	return g
 }

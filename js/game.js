@@ -460,10 +460,12 @@ function umbrellaTick(dt) {
 	var r_coins_gain = umbrellaGain
 	if (hasUpgrade("r", 14)) { r_coins_gain = r_coins_gain.times(upgradeEffect("r", 14)) }
 	if (hasUpgrade("r", 32)) { r_coins_gain = r_coins_gain.times(upgradeEffect("r", 32)) }
+	if (hasUpgrade("C", 11)) { r_coins_gain = r_coins_gain.times(upgradeEffect("C", 11)) }
 	player.r.r_coins = player.r.r_coins.add(r_coins_gain.times(dt))
 }
 
 function other_tick_things(dt) {
+	//w layer
 	if (hasMilestone("r", 4)) {
 		player.w.puddleSize = player.w.points.div(10)
 		player.w.pondSize = player.w.points.div(1e6)
@@ -475,5 +477,10 @@ function other_tick_things(dt) {
 	}
 	if (hasUpgrade("r", 34)) {
 		player.w.riverSize = player.w.riverSize.add(upgradeEffect("r",34).times(dt))
+	}
+
+	//C layer
+	if (hasUpgrade("C", 22)) {
+		player.C.c_coin = player.r.r_coins.add(1).log().times(0.434294481903251827).sub(100).max(0).floor()
 	}
 }

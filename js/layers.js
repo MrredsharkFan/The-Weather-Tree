@@ -34,7 +34,11 @@ addLayer("e", {
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
-        return new ExpantaNum(1)
+        e = new ExpantaNum(1)
+        if (hasUpgrade("A", 11)){
+            e = e.times(1.05)
+        }
+        return e
     },
     row: 0, // Row the layer is in on the tree (0 is the first row)
     hotkeys: [
@@ -90,6 +94,12 @@ addLayer("e", {
             title: "why did u double this",
             description: "double the effect of <b>conversion</b> (basically unlocks another layer)",
             cost: new ExpantaNum("1.5e150")
+        },
+        16: {
+            unlocked() { return hasUpgrade("e", 15) },
+            title: "An unknown force",
+            description() { return hasUpgrade("e",16)?"Unlocks Anti-energy.":"????" },
+            cost: new ExpantaNum("1e1700")
         }
 },
 })
@@ -144,7 +154,9 @@ addLayer("w", {
     },
     autoUpgrade(){return hasMilestone("r",5)},
     gainExp() { // Calculate the exponent on main currency from bonuses
-        return new ExpantaNum(1)
+        e = new ExpantaNum(1)
+        if (hasUpgrade("A",12)){ e = e.times(1.05)}
+        return e
     },
     row: 1, // Row the layer is in on the tree (0 is the first row)
     hotkeys: [
@@ -597,7 +609,7 @@ addLayer("r", {
 
     
     
-//here comes the SECOND branch!!!!
+//here comes the SECOND branch!!!! (somehow the holy grail of my free)
 )
 addLayer("h", {
     name: "Heat", 
@@ -624,6 +636,7 @@ addLayer("h", {
     exponent: 0.02, 
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new ExpantaNum(1)
+        mult = mult.times(get_clothing_effect()[1])
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -651,6 +664,8 @@ addLayer("h", {
             content: [
                 "main-display",
                 "prestige-button",
+                ["display-text", function () { return "this equates to a temperature of " + format(getHeat(player.h.points), 5) + " *C" }],
+                "blank",
                 ["display-text",function(){return "You have extracted "+format(player.h.oil)+"kg of oil, translating to *"+format(clickableEffect("h",11),5)+" global warming effect."}],
                 ["upgrades", "45"],
                 "clickables"
@@ -705,7 +720,9 @@ addLayer("h", {
             description: "Global warming boosts rain rate",
             cost: new ExpantaNum(1e9),
             effect() {
-                return getBuyableAmount("h",11).add(1).pow(0.12)
+                e = getBuyableAmount("h", 11).add(1).pow(0.12)
+                if (hasUpgrade("h",53)){e = e.pow(upgradeEffect("h",53))}
+                return e
             },
             effectDisplay() {return "x"+format(this.effect())}
         },
@@ -752,7 +769,15 @@ addLayer("h", {
         43: {
             unlocked() { return hasUpgrade("h", 42) },
             fullDisplay() { return "<h3>Violent Digging</h3><br>Temperature boosts Oil gain.<br><br>Cost: 1.25kg Oil<br>Currently: x"+format(this.effect()) },
-            effect() { return getHeat(player.h.points).sub(30).max(1).pow(2) },
+            effect() {
+                if (!hasUpgrade("h", 54)){
+                    e = getHeat(player.h.points).sub(30).max(1).pow(2)
+                }
+                else {
+                    e = new ExpantaNum(2.4).pow(getHeat(player.h.points).sub(30).max(1))
+                }
+                return e
+            },
             canAfford() { return player.h.oil.gte(1.25) },
             pay() { player.h.oil = player.h.oil.sub(1.25) }
         },
@@ -787,6 +812,29 @@ addLayer("h", {
              },
             effect(){return getBuyableAmount("r",11).add(1).pow(0.3).div(10).add(1)}
         },
+        53: {
+            unlocked() { return hasUpgrade("h", 52) },
+            title: "Cloudburst",
+            description() { return "<b>Sudden intensification</b> effect ^1.5, only for 1s every 10s, next activation in "+Math.max(0,(10000-Date.now()%10000)/1000)+"s" },
+            cost: new ExpantaNum(1e28),
+            effect() {
+                if (Date.now() % 10000 < 1000) {
+                    return new ExpantaNum(1.5)
+                } else {
+                    return new ExpantaNum(1)
+                }
+            },
+            effectDisplay()
+            {
+                return "^" + this.effect()
+            }
+        },
+        54: {
+            unlocked() { return hasUpgrade("h", 53) },
+            title: "Thermal-induced digging",
+            description: "<b>Violent Digging</b>\'s effect is improved.",
+            cost: new ExpantaNum(1e29)
+        }
     },
     buyables: {
         11: {
@@ -867,9 +915,257 @@ addLayer("h", {
             canClick() { return (Date.now() - player.h.lc5 > 600000) },
             onClick() {
                 g = getBaseOilGain()
-                player.h.oil = player.h.oil.add(g.times(1000))
+                player.h.oil = player.h.oil.add(g.times(10000))
                 player.h.lc5 = Date.now()
             }
         }
+    }
+})
+
+
+addLayer("A", {
+    name: "Anti-Energy", // This is optional, only used in a few places, If absent it just uses the layer id.
+    symbol: "A", // This appears on the layer's node. Default is the id with the first letter capitalized
+    position: 1, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    startData() {
+        return {
+            unlocked: false,
+            points: new ExpantaNum(0),
+        }
+    },
+    infoboxes: {
+        "misc. info": {
+            title: "The",
+            body: "This layer won\'t be reset by H, W or R."
+    }},
+    color: "#22FFAA",
+    requires: new ExpantaNum("1e2400"), // Can be a function that takes requirement increases into account
+    resource: "anti-energy", // Name of prestige currency
+    baseResource: "points", // Name of resource prestige is based on
+    baseAmount() { return player.points }, // Get the current amount of baseResource
+    type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+    exponent: 0.0025, // Prestige currency exponent
+    passiveGeneration() {
+        return hasMilestone("C",0)?3:0
+    },
+    doReset(s) {
+        if (s == "C") {
+            layerDataReset("A")
+        }
+    },
+    gainMult() { // Calculate the multiplier for main currency from bonuses
+        mult = new ExpantaNum(1)
+        if (hasUpgrade("C",12)){mult = mult.times(upgradeEffect("C",12))}
+        return mult
+    },
+    gainExp() { // Calculate the exponent on main currency from bonuses
+        return new ExpantaNum(1)
+    },
+    unlocked() {
+        return (hasUpgrade("e",16) && player.points.gte("1e1000") || player.A.points.gte(1))
+    },
+    layerShown() {
+        return this.unlocked()
+    },
+    row: 0,
+    hotkeys: [
+        { key: "a", description: "A: Reset for anti-energy", onPress() { if (canReset(this.layer)) doReset(this.layer) } },
+    ],
+    upgrades: {
+        11: {
+            title: "emocleW",
+            description: "A new start. ^1.05 Energy.",
+            cost: new ExpantaNum(2)
+        },
+        12: {
+            title: "beating a jet2 holiday",
+            description: "Water gain ^1.05",
+            cost: new ExpantaNum(128)
+        },
+        21: {
+            title: "Already???",
+            description: "Unlocks a new layer.",
+            cost: new ExpantaNum(2048)
+        },
+        22: {
+            title: "(s^2+k)/4s<br>+sk/(s^2+k)",
+            description: "Points are boosted by Anti-Energy.",
+            cost: new ExpantaNum(141421),
+            effect() { return player.A.points.pow(player.A.points.add(1).log()) },
+            effectDisplay() {return "x"+format(this.effect())}
+        }
+    }
+}
+)
+
+function generate_cloth(name, price, effect) { //putting the function here is one of the best things i've ever done
+    return {
+        fullDisplay() { return "<h3>" + name + "</h3><br>-" + format(effect) + " Optimal temperature<br>Cost:" + format(price) + " C-coin" },
+        canAfford() { return player.C.c_coin.gte(player.C.c_coin_spent.add(price)) },
+        pay() { player.C.c_coin_spent = player.C.c_coin_spent.add(price) },
+        effect() { return effect }
+    }
+
+}
+cloth_grid = [
+    generate_cloth("Light jacket", new OmegaNum(4), new OmegaNum(1)),
+    generate_cloth("Normal jacket", new OmegaNum(24), new OmegaNum(2)),
+    generate_cloth("Normal jacket (branded)", new OmegaNum(48), new OmegaNum(4)),
+    generate_cloth("Thick jacket", new OmegaNum(96), new OmegaNum(6)),
+    generate_cloth("Heavy jacket", new OmegaNum(192), new OmegaNum(8)),
+    generate_cloth("Long-sleeved pants", new OmegaNum(40), new OmegaNum(3)),
+    generate_cloth("\"Winter\" pants", new OmegaNum(80), new OmegaNum(6.5)),
+    generate_cloth("Thick pants", new OmegaNum(160), new OmegaNum(7)),
+    generate_cloth("Furry pants", new OmegaNum(388), new OmegaNum(14)),
+    generate_cloth("Furry pants (luxury)", new OmegaNum(788), new OmegaNum(23)),
+    generate_cloth("(So-called Warm) Earphones", new OmegaNum(8), new OmegaNum(1.5)),
+    generate_cloth("Earmuffs", new OmegaNum(64), new OmegaNum(4.5)),
+    generate_cloth("Normal Hoodie", new OmegaNum(78), new OmegaNum(5.5)),
+    generate_cloth("Thick Hoodie", new OmegaNum(138), new OmegaNum(7.5)),
+    generate_cloth("Double layer Hoodie", new OmegaNum(288), new OmegaNum(13)),
+]
+
+addLayer("C", {
+    name: "Coldness", // This is optional, only used in a few places, If absent it just uses the layer id.
+    symbol: "C", // This appears on the layer's node. Default is the id with the first letter capitalized
+    position: 3, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+    startData() {
+        return {
+            unlocked: true,
+            points: new ExpantaNum(0),
+            c_coin: new ExpantaNum(0),
+            c_coin_spent: new ExpantaNum(0)
+        }
+    },
+    color: "#22AAAA",
+    requires: new ExpantaNum("2048"), // Can be a function that takes requirement increases into account
+    resource: "Coldness", // Name of prestige currency
+    baseResource: "anti-energy", // Name of resource prestige is based on
+    baseAmount() { return player.A.points }, // Get the current amount of baseResource
+    type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+    exponent: 0.25, // Prestige currency exponent
+    gainMult() { // Calculate the multiplier for main currency from bonuses
+        mult = new ExpantaNum(1)
+        return mult
+    },
+    gainExp() { // Calculate the exponent on main currency from bonuses
+        return new ExpantaNum(1)
+    },
+    branches: ["A"],
+    row: 1,
+    unlocked() {
+        return (player.C.total.gte(1) || hasUpgrade("A",21))
+    },
+    layerShown() {
+        return this.unlocked()
+    },
+    hotkeys: [
+        { key: "c", description: "C: Reset for coldness", onPress() { if (canReset(this.layer)) doReset(this.layer) } },
+    ],
+    tabFormat: {
+
+        "main": {
+            "content": [
+            "main-display",
+            "prestige-button",
+            ["display-text", function () { return "This equates to a temperature of " + format(getCold(player.C.points), 5) + "*C" }],
+            "milestones",
+            ["upgrades",2]
+            ]
+        },
+        "outfits": {
+            unlocked(){return hasUpgrade("C",22)},
+            "content": [
+                "main-display",
+                "prestige-button",
+                ["display-text", function () { return "This equates to a temperature of " + format(getCold(player.C.points), 5) + "*C" }],
+                "blank",
+                ["display-text", function () {
+                    return "You have " + format(player.C.c_coin.sub(player.C.c_coin_spent)) + "/" + format(player.C.c_coin) + " C-coins." +
+                        "<br> Your clothing has brought a total of " + format(getTotalClothPower()) + " Clothing power.<br> This returns an optimal temperature of " + format(get_clothing_effect()[0]) + "*C" +
+                    "<br>This returns in a x"+format(get_clothing_effect()[1])+" boost in heat"
+                }],
+                ["upgrades", [90,91,92,93,94,95]]
+            ]
+        }
+},
+    milestones: {
+        0: {
+            requirementDescription: "<19*C",
+            effectDescription: "Gain 300% of Anti-Energy/s.",
+            done(){return !getCold(player.C.points).gte(20)}
+        }  
+    },
+    upgrades: {
+        11: {
+            title: "cool day here",
+            description: "Coldness boosts R-coin gain",
+            cost: new ExpantaNum(1),
+            effect() { return new ExpantaNum(10).pow(player.C.points.add(2).log(10).pow(2)) },
+            effectDisplay() { return "x" + format(this.effect()) }
+        },
+        12: {
+            title: "De-energizers",
+            description: "Anti-energy is boosted by coldness.",
+            cost: new ExpantaNum(2),
+            effect() { return player.C.points.add(2).pow(0.5) },
+            effectDisplay() { return "x" + format(this.effect()) }
+        },
+        13: {
+            title: "Rerouted heat",
+            description: "Heat temperature is boosted by cold temperature.",
+            cost: new ExpantaNum(3),
+            effect() { return new ExpantaNum(20).sub(getCold(player.C.points)).add(1).pow(0.3).sub(1) },
+            effectDisplay() { return "+" + format(this.effect(), 5) }
+        },
+        14: {
+            title: "AC water tubes",
+            description: "Water decreases temperature.",
+            cost: new ExpantaNum(24),
+            effect() { return player.w.points.add(1).log().add(1).log().pow(0.4).sub(1) },
+            effectDisplay() { return "-" + format(this.effect(), 5) }
+        },
+        21: {
+            title: "Natural raindrops",
+            description: "Rain rate decreases temperature.",
+            cost: new ExpantaNum(72),
+            effect() { return getRain(player.r.points).add(1).pow(0.25).sub(1) },
+            effectDisplay() { return "-" + format(this.effect(), 5) }
+        },
+        22: {
+            title: "Put those MONEY into use!",
+            description: "Unlocks jackets",
+            cost: new ExpantaNum(144)
+        },
+        901: {
+            fullDisplay: "Respec your cloth selection.",
+            pay() {
+                player.C.upgrades.sort()
+                while (player.C.upgrades[player.C.upgrades.length - 1]>99||player.C.upgrades[player.C.upgrades.length - 1]==null){
+                    player.C.upgrades.pop()
+                }
+                player.C.c_coin_spent = new ExpantaNum(0)
+            },
+            function() {
+                if (player.C.upgrades[player.C.upgrades.length - 1] == "901") {
+                    player.C.upgrades.pop()
+                }
+            }
+        },
+        911: cloth_grid[0], //CODE SIMPLIFICATION
+        912: cloth_grid[1],
+        913: cloth_grid[2],
+        914: cloth_grid[3],
+        915: cloth_grid[4],
+        921: cloth_grid[5],
+        922: cloth_grid[6],
+        923: cloth_grid[7],
+        924: cloth_grid[8],
+        925: cloth_grid[9],
+        931: cloth_grid[10],
+        932: cloth_grid[11],
+        933: cloth_grid[12],
+        934: cloth_grid[13],
+        935: cloth_grid[14],
     }
 })
