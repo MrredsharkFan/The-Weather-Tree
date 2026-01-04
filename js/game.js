@@ -483,4 +483,15 @@ function other_tick_things(dt) {
 	if (hasUpgrade("C", 22)) {
 		player.C.c_coin = player.r.r_coins.add(1).log().times(0.434294481903251827).sub(100).max(0).floor()
 	}
+
+	//late R layer
+	if (hasMilestone("r", 8)) {
+		player.r.buyables[11] = player.r.points.add(1).log().times(1 / Math.log(3))
+		player.h.buyables[11] = player.h.points.add(1).log().times(1/Math.log(2))
+	}
+
+	//rejecting baby play
+	if (player.e.points.gte(getResetGain("e").times(1000))) {
+		player.e.points = getResetGain("e").times(1000)
+	}
 }

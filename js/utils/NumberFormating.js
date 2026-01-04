@@ -65,7 +65,7 @@ function format(decimal, precision = 3, small = false) {
     }
   }else if(decimal.lt(1e9)){
     return commaFormat(decimal,precision)
-  }else if(decimal.lt("e10000")){
+  }else if(decimal.lt("e1e15")){
     let mantissa = EN(10).pow(decimal.log10().sub(decimal.log10().floor()))
     let exp = decimal.log10().floor()
     let m = mantissa.toString().split(".")
@@ -75,7 +75,7 @@ function format(decimal, precision = 3, small = false) {
     }
     else if(precision==0){mantissa = m[0]+"."+m[1].substring(0,2)}
     else mantissa = m[0]+"."+m[1].substring(0,precision)
-    return mantissa+"e"+exp.toString()
+    return mantissa+"e"+(exp.gte(1000)?format(exp):exp.toString())
   }
   else if(decimal.lt("10^^5")){
     let part1 = "e".repeat(egg(decimal.array[1])+1 - (decimal.gte(EN.E_MAX_SAFE_INTEGER)))
@@ -96,22 +96,10 @@ function format(decimal, precision = 3, small = false) {
   }
   else {
     if(decimal.lt("10^^^^5")){
-      //console.log(egg(decimal.array[3]))
-      // Hmmmmmm
-      let part1 = "G".repeat(egg(decimal.array[3])+ 1 - (decimal.gte("10^^^"+Number.MAX_SAFE_INTEGER)))
-      if(part1 != "G") {
-        decimal.array.pop()
-        return part1+format(decimal)
-      }
-      return "G" + format(decimal.hlog(3))
+      
     }
     else if(decimal.lt("10{5}5")){
-      let part1 = "H".repeat(egg(decimal.array[4])+1 - (decimal.gte("10^^^^"+Number.MAX_SAFE_INTEGER)))
-      if(part1 != "H") {
-        decimal.array.pop()
-        return part1+format(decimal)
-      }
-      return "H" + format(decimal.hlog(4))
+      
     }
     let e= decimal.toHyperE()
     let sp = e.split("#")

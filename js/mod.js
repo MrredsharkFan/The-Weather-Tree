@@ -92,6 +92,16 @@ function addWatering(x) {
 	}
 }
 
+function getRH(j) {
+	e = j.add(1).slog().times(16).add(50)
+	if (e.gte(100)) {
+		e = e.div(10).slog().times(100)
+	}
+	f1 = e.sub(40)
+	f2 = new ExpantaNum(4000).div(f1)
+	return [e,f1,f2]
+}
+
 function getRain(j) {
 	e = j.add(1).log(10)
 	if (e.gte(10)) {
@@ -125,14 +135,18 @@ function getCold(j) {
 		e = e.div(2).slog().times(20)
 	}
 	if (hasUpgrade("C", 14)) { e = e.add(upgradeEffect("C", 14)) }
-	if (hasUpgrade("C",21)){e = e.add(upgradeEffect("C",21))}
+	if (hasUpgrade("C", 21)) { e = e.add(upgradeEffect("C", 21)) }
+	if (hasUpgrade("C",23)){e = e.add(2)}
 	e = new ExpantaNum(20).sub(e)
 	return e
 }
 
 function get_clothing_effect(n=getTotalClothPower()) {
-	e = new ExpantaNum(20).sub(n.add(1).pow(0.4).times(2))
+	e = new ExpantaNum(20).sub(n.add(1).pow(0.5).times(2))
 	f = new ExpantaNum(10).pow(n.pow(1.25).add(1)).add(1)
+	if (!e.gte(0)) {
+		e = e.times(-1).pow(0.25).times(-1)
+	}
 	return [e,f]
 }
 
@@ -147,11 +161,25 @@ function getBaseOilGain() {
 
 function getTotalClothPower() {
 	g = new ExpantaNum(0)
-	upg = [911,912,913,914,915,921,922,923,924,925,931,932,933,934,935]
+	upg = [911,912,913,914,915,921,922,923,924,925,931,932,933,934,935,941,942,943]
 	for (let i in upg) {
 		if (hasUpgrade("C",upg[i])) {
 			g = g.add(upgradeEffect("C",upg[i]))
 		}
 	}
 	return g
+}
+
+function getClothesBought() {
+	g = new ExpantaNum(0)
+	for (let i in [911, 912, 913, 914, 915, 921, 922, 923, 924, 925, 931, 932, 933, 934, 935, 941, 942, 943]) {
+		if (hasUpgrade("C", upg[i])) {
+			g = g.add(1)
+		}
+	}
+	return g
+}
+
+function dummy_1() {
+	return player.C.quality
 }

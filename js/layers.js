@@ -12,7 +12,9 @@ addLayer("e", {
         "softcaps":
         {
             title: "why is this section so fast",
-            body: "first, the gain before 1e10 is LINEAR to points, and <br>of course there is a ^0.5 softcap at 1e10<br><br>ALSO, U13 is softcapped beyond 1e24"
+            body: "first, the gain before 1e10 is LINEAR to points, and <br>of course there is a ^0.5 softcap at 1e10<br><br>ALSO, U13 is softcapped beyond 1e24" +
+                "<br><br>A threshold would also be reached somewhere in the future, where your points increase by a whole lot for an instant,<br>but grow much slower further down..." +
+            "<br><br>Energy is limited to 1,000x your pending energy."
         },
     },
     color: "#FFFFAA",
@@ -31,6 +33,9 @@ addLayer("e", {
         mult = mult.times(clickableEffect("w", 12))
         if (hasUpgrade("w", 15)) { mult = mult.times(upgradeEffect("w", 15)) }
         if (hasUpgrade("h", 12)) { mult = mult.times(upgradeEffect("h", 12)) }
+        if (hasUpgrade("C", 15)) { mult = mult.times(upgradeEffect("C", 15)) }
+        if (hasUpgrade("h", 55)) { mult = mult.times(upgradeEffect("h", 55)) }
+        if (hasUpgrade("C", 35)) { mult = mult.times(upgradeEffect("C", 35)) }
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -38,6 +43,7 @@ addLayer("e", {
         if (hasUpgrade("A", 11)){
             e = e.times(1.05)
         }
+        if (hasUpgrade("C",33)){e = e.times(upgradeEffect("C",33))}
         return e
     },
     row: 0, // Row the layer is in on the tree (0 is the first row)
@@ -65,7 +71,10 @@ addLayer("e", {
                 s = s.pow(0.25).add(1)
                 if (hasUpgrade("w", 22)) { s = s.pow(2) }
                 if (hasUpgrade("w", 23)) { s = s.pow(1.5) }
-                if (player.w.puddleSize.gte(0)) {s = s.pow(clickableEffect("w",21))}
+                if (player.w.puddleSize.gte(0)) { s = s.pow(clickableEffect("w", 21)) }
+                if (s.gte("1e7200")){
+                    s = s.pow(1 / 720).log().times(0.434294481903251827).pow(7200).div("1e1000").add("1e7200")
+                }
                 return s
             },
             effectDisplay() {return "x"+format(this.effect())}
@@ -155,7 +164,8 @@ addLayer("w", {
     autoUpgrade(){return hasMilestone("r",5)},
     gainExp() { // Calculate the exponent on main currency from bonuses
         e = new ExpantaNum(1)
-        if (hasUpgrade("A",12)){ e = e.times(1.05)}
+        if (hasUpgrade("A", 12)) { e = e.times(1.05) }
+        if (hasUpgrade("C",25)){e = e.times(upgradeEffect("C",25))}
         return e
     },
     row: 1, // Row the layer is in on the tree (0 is the first row)
@@ -169,6 +179,7 @@ addLayer("w", {
             content: [
                 "main-display",
                 ["display-text", function () { return "this is enough to fill a box with sides of " + format(player.w.points.pow(1 / 3)) + "cm with air" }],
+                ["display-text", function () { return "This also corresponds to a humidity of " + format(getRH(player.w.points)[0],5) + "%" }],
                 "prestige-button",
                 "upgrades",
                 "blank",
@@ -317,6 +328,9 @@ addLayer("w", {
                 if (e.gte(1e9)) {
                     e = e.pow(1/3).times(1e6)
                 }
+                if (e.gte("1e7200")) {
+                    e = e.pow(1/7200).div(10).log().times(4.34294481903251827).pow(3200).times("1e7200")
+                }
                 return e
             }
         },
@@ -333,7 +347,10 @@ addLayer("w", {
                 if (hasUpgrade("w", 32)) {
                     e = e.pow(2)
                 }
-                if (e.gte(1e8)){e = e.pow(0.5).times(1e4)}
+                if (e.gte(1e8)) { e = e.pow(0.5).times(1e4) }
+                if (e.gte("1e7200")) {
+                    e = e.pow(1 / 7200).div(10).log().times(4.34294481903251827).add(1).pow(3200).times("1e7200")
+                }
                 return e
             }
         },
@@ -347,7 +364,10 @@ addLayer("w", {
             },
             effect() {
                 e = player.w.waterings[2].pow(1 / 6).add(1)
-                if (hasUpgrade("w",31)){e = e.pow(2)}
+                if (hasUpgrade("w", 31)) { e = e.pow(2) }
+                if (e.gte("1e7200")) {
+                    e = e.pow(1 / 7200).div(10).log().times(4.34294481903251827).add(1).pow(3200).times("1e7200")
+                }
                 return e
             }
         },
@@ -505,6 +525,12 @@ addLayer("r", {
             effectDescription: "Gain 100% of rain/s.",
             done() { return player.r.total.gte(1e20) }
         }
+        ,
+        8: {
+            requirementDescription: "1.000e308 total rain droplets",
+            effectDescription: "Shop\'s base cost is 1, and automate buying max shops. Same with <b>Global Warming</b>.",
+            done() { return player.r.total.gte("1e308") }
+        }
     },
     buyables: {
         11: {
@@ -534,7 +560,11 @@ addLayer("r", {
             fullDisplay() { return "<h3>Orange umbrella</h3><br>R-coins boost umbrellas (also boosts R-coins actually)<br>Cost: 100 R-coins<br>Currently: x" + format(this.effect()) },
             canAfford() { return player.r.r_coins.gte(100) },
             pay() { player.r.r_coins = player.r.r_coins.sub(100) },
-            effect() { return player.r.r_coins.pow(0.25).add(1) }
+            effect() {
+                e = player.r.r_coins.pow(0.25).add(1)
+                if (e.gte(1e100)){e = e.log().pow(50).div(1e12).add(1e100)}
+                return e
+             }
         },
         13: {
             fullDisplay() { return "<h3>Yellow umbrella</h3><br>R-coins boost water<br>Cost: 1,500 R-coins<br>Currently: x" + format(this.effect()) },
@@ -552,7 +582,13 @@ addLayer("r", {
             title: "Ripples",
             description: "they evolve. Rain boosts points.",
             cost: new OmegaNum(8),
-            effect() { return player.r.points.add(2).pow(9) },
+            effect() {
+                e = player.r.points.add(2).pow(9) 
+                if (e.gte("1e7200")){
+                    e = e.pow(1/7200).log().pow(2400).times("1e7200")
+                }
+                return e
+            },
             effectDisplay() {return "x"+format(this.effect())}
         },
         22: {
@@ -600,6 +636,7 @@ addLayer("r", {
                 e = getRain(player.w.points).pow(2)
                 if (hasUpgrade("h", 24)) { e = e.pow(1.5) }
                 if (hasUpgrade("h", 51)) { e = e.pow(1.5) }
+                if (hasUpgrade("C", 31)) { e = e.pow(upgradeEffect("C",31)) }
                 return e
             },
             effectDisplay(){return format(this.effect())+"/s"},
@@ -791,11 +828,7 @@ addLayer("h", {
             unlocked() { return hasUpgrade("h", 41) },
             title: "Check back v2",
             description: "Double the effect of <b>Rarer Oils</b>",
-            cost: new ExpantaNum(1e24),
-            pay() {
-                lc5 = Date.now() + 60000
-                lc4 = Date.now() + 3000
-            }
+            cost: new ExpantaNum(1e24)
         },
         51: {
             unlocked() { return hasUpgrade("h", 44) },
@@ -815,11 +848,15 @@ addLayer("h", {
         53: {
             unlocked() { return hasUpgrade("h", 52) },
             title: "Cloudburst",
-            description() { return "<b>Sudden intensification</b> effect ^1.5, only for 1s every 10s, next activation in "+Math.max(0,(10000-Date.now()%10000)/1000)+"s" },
+            description() { return "<b>Sudden intensification</b> effect ^1.5, only for 1s every 10s, next activation in " + Math.max(0, ((hasUpgrade("C", 32) ? 30000 : 10000) - Date.now() % (hasUpgrade("C", 32) ? 30000 : 10000))/1000)+"s" },
             cost: new ExpantaNum(1e28),
             effect() {
-                if (Date.now() % 10000 < 1000) {
-                    return new ExpantaNum(1.5)
+                if (Date.now() % (hasUpgrade("C", 32) ? 30000 : 10000) < 1000) {
+                    e = new ExpantaNum(1.5)
+                    if (hasUpgrade("C", 32)) {
+                        e = e.times(1.5)
+                    }
+                    return e
                 } else {
                     return new ExpantaNum(1)
                 }
@@ -834,6 +871,17 @@ addLayer("h", {
             title: "Thermal-induced digging",
             description: "<b>Violent Digging</b>\'s effect is improved.",
             cost: new ExpantaNum(1e29)
+        },
+        55: {
+            unlocked() { return hasUpgrade("h", 54) },
+            title: "General Oil usage",
+            description: "Oil boosts energy. <br><i>Fact: I have to add this much later because i forgor</i>",
+            cost: new ExpantaNum("1e3100"),
+            effect() {
+                e = new ExpantaNum(10).pow(player.h.oil.log().pow(3.6).div(3))
+                return e
+            },
+            effectDisplay(){return "x"+format(this.effect())}
         }
     },
     buyables: {
@@ -950,12 +998,13 @@ addLayer("A", {
     },
     doReset(s) {
         if (s == "C") {
-            layerDataReset("A")
+            layerDataReset("A",(hasMilestone("C",1)?["upgrades"]:null))
         }
     },
     gainMult() { // Calculate the multiplier for main currency from bonuses
         mult = new ExpantaNum(1)
-        if (hasUpgrade("C",12)){mult = mult.times(upgradeEffect("C",12))}
+        if (hasUpgrade("C", 12)) { mult = mult.times(upgradeEffect("C", 12)) }
+        if (hasUpgrade("C",34)){mult = mult.times(upgradeEffect("C",34))}
         return mult
     },
     gainExp() { // Calculate the exponent on main currency from bonuses
@@ -991,19 +1040,26 @@ addLayer("A", {
             title: "(s^2+k)/4s<br>+sk/(s^2+k)",
             description: "Points are boosted by Anti-Energy.",
             cost: new ExpantaNum(141421),
-            effect() { return player.A.points.pow(player.A.points.add(1).log()) },
+            effect() {
+                e = player.A.points.pow(player.A.points.add(1).log())
+                if (e.gte("1e7200")) {
+                    e = e.pow(1 / 7200).div(10).log().times(4.34294481903251827).pow(3200).times("1e7200")
+                }
+                return e
+             },
             effectDisplay() {return "x"+format(this.effect())}
         }
     }
 }
 )
 
-function generate_cloth(name, price, effect) { //putting the function here is one of the best things i've ever done
+
+function generate_cloth(name, price, effect) {
     return {
-        fullDisplay() { return "<h3>" + name + "</h3><br>-" + format(effect) + " Optimal temperature<br>Cost:" + format(price) + " C-coin" },
-        canAfford() { return player.C.c_coin.gte(player.C.c_coin_spent.add(price)) },
-        pay() { player.C.c_coin_spent = player.C.c_coin_spent.add(price) },
-        effect() { return effect }
+        fullDisplay() { return "<h3>" + name + "</h3><br>-" + format(effect.times(new ExpantaNum.pow(2.5, player.C.quality))) + " Optimal temperature<br>Cost:" + format(price.times(new ExpantaNum.pow(2, player.C.quality))) + " C-coin" },
+        canAfford() { return player.C.c_coin.gte(player.C.c_coin_spent.add(price.times(new ExpantaNum.pow(2, player.C.quality)))) },
+        pay() { player.C.c_coin_spent = player.C.c_coin_spent.add(price.times(new ExpantaNum.pow(2, player.C.quality))) },
+        effect() { return effect.times(new ExpantaNum.pow(2.5, player.C.quality)) }
     }
 
 }
@@ -1015,7 +1071,7 @@ cloth_grid = [
     generate_cloth("Heavy jacket", new OmegaNum(192), new OmegaNum(8)),
     generate_cloth("Long-sleeved pants", new OmegaNum(40), new OmegaNum(3)),
     generate_cloth("\"Winter\" pants", new OmegaNum(80), new OmegaNum(6.5)),
-    generate_cloth("Thick pants", new OmegaNum(160), new OmegaNum(7)),
+    generate_cloth("Thick pants", new OmegaNum(160), new OmegaNum(9)),
     generate_cloth("Furry pants", new OmegaNum(388), new OmegaNum(14)),
     generate_cloth("Furry pants (luxury)", new OmegaNum(788), new OmegaNum(23)),
     generate_cloth("(So-called Warm) Earphones", new OmegaNum(8), new OmegaNum(1.5)),
@@ -1023,6 +1079,9 @@ cloth_grid = [
     generate_cloth("Normal Hoodie", new OmegaNum(78), new OmegaNum(5.5)),
     generate_cloth("Thick Hoodie", new OmegaNum(138), new OmegaNum(7.5)),
     generate_cloth("Double layer Hoodie", new OmegaNum(288), new OmegaNum(13)),
+    generate_cloth("Scarf", new OmegaNum(135), new OmegaNum(8)),
+    generate_cloth("Stylish Scarf", new OmegaNum(280), new OmegaNum(11)),
+    generate_cloth("Double Scarf", new OmegaNum(420), new OmegaNum(13)),
 ]
 
 addLayer("C", {
@@ -1034,7 +1093,8 @@ addLayer("C", {
             unlocked: true,
             points: new ExpantaNum(0),
             c_coin: new ExpantaNum(0),
-            c_coin_spent: new ExpantaNum(0)
+            c_coin_spent: new ExpantaNum(0),
+            quality: new ExpantaNum(0)
         }
     },
     color: "#22AAAA",
@@ -1070,7 +1130,7 @@ addLayer("C", {
             "prestige-button",
             ["display-text", function () { return "This equates to a temperature of " + format(getCold(player.C.points), 5) + "*C" }],
             "milestones",
-            ["upgrades",2]
+            ["upgrades",4]
             ]
         },
         "outfits": {
@@ -1083,7 +1143,8 @@ addLayer("C", {
                 ["display-text", function () {
                     return "You have " + format(player.C.c_coin.sub(player.C.c_coin_spent)) + "/" + format(player.C.c_coin) + " C-coins." +
                         "<br> Your clothing has brought a total of " + format(getTotalClothPower()) + " Clothing power.<br> This returns an optimal temperature of " + format(get_clothing_effect()[0]) + "*C" +
-                    "<br>This returns in a x"+format(get_clothing_effect()[1])+" boost in heat"
+                        "<br>This returns in a x" + format(get_clothing_effect()[1]) + " boost in heat" +
+                    ((hasUpgrade("C",24))?"<br><br>Your current quality is "+format(player.C.quality)+".":null)
                 }],
                 ["upgrades", [90,91,92,93,94,95]]
             ]
@@ -1093,7 +1154,12 @@ addLayer("C", {
         0: {
             requirementDescription: "<19*C",
             effectDescription: "Gain 300% of Anti-Energy/s.",
-            done(){return !getCold(player.C.points).gte(20)}
+            done(){return !getCold(player.C.points).gte(19)}
+        }, 
+        1: {
+            requirementDescription: "<14*C",
+            effectDescription: "Anti-energy upgrades are kept upon Coldness reset.",
+            done() { return !getCold(player.C.points).gte(14) }
         }  
     },
     upgrades: {
@@ -1137,10 +1203,104 @@ addLayer("C", {
             description: "Unlocks jackets",
             cost: new ExpantaNum(144)
         },
+        23: {
+            title: "AC Mass Production",
+            description: "Coldness\' temperature is decreased by 2.",
+            cost: new ExpantaNum(1e25)
+        },
+        24: {
+            title: "Quality Control+",
+            description: "Unlocks a new feature.",
+            cost: new ExpantaNum(2.5e25)
+        },
+        25: {
+            title: "Condensation",
+            description: "Coldness\' temperature (needs to be below 10*C) boosts water.",
+            cost: new ExpantaNum(1.25e26),
+            effect() {
+                e = new ExpantaNum(10).sub(getCold(player.C.points))
+                e = e.max(0).pow(0.25).div(4).add(1)
+                return e
+            },
+            effectDisplay(){return "^"+format(this.effect(),5)}
+        },
+        31: {
+            title: "Refreshing waTers",
+            description: "Overland Flow effect ^1.5.",
+            cost: new ExpantaNum(1e28),
+            effect() {
+                e = new ExpantaNum(1.5)
+                if (hasUpgrade("C", 41)) {
+                    e = e.times(upgradeEffect("C", 41))
+                }
+                return e
+            },
+            effectDisplay(){return "^"+format(this.effect(),5)}
+        },
+        32: {
+            title: "SlighT convecTion",
+            description: "<b>Cloudburst</b>\'s active effect x1.5, but the activation interval is set to 30s.",
+            cost: new ExpantaNum(2e28)
+        },
+        33: {
+            title: "Comfort",
+            description: "The closer the optimal temperature is to the current temperature, the more energy you get.",
+            cost: new ExpantaNum(1e29),
+            effect() {
+                e = get_clothing_effect()[0].sub(getCold(player.C.points)).abs()
+                e = new ExpantaNum(0.5).div(e.div(7).add(1)).add(1)
+                return e
+            },
+            effectDisplay() {return "^"+format(this.effect(),5)}
+        },
+        15: {
+            title: "Energizing wash",
+            description: "Energy is massively boosted based on coldness.",
+            cost: new ExpantaNum(1e30),
+            effect() {
+                e = player.C.points
+                e = new ExpantaNum(10).pow(e.log().pow(3).div(8))
+                return e
+            },
+            effectDisplay() {return "*"+format(this.effect())}
+        },
+        34: {
+            title: "Preferred tendency",
+            description: "Anti-energy is boosted by Energy.",
+            cost: new ExpantaNum(1e34),
+            effect() {
+                e = new ExpantaNum(10).pow(player.e.points.log().pow(1 / 2.4).div(8))
+                return e
+            },
+            effectDisplay(){return "*"+format(this.effect())}
+        },
+        35: {
+            title: "Enhanced Powerhouses",
+            description: "Quality boosts energy",
+            cost: new ExpantaNum(1e48),
+            effect() {
+                e = new ExpantaNum(10).pow(player.C.quality.pow(4).times(16767))
+                return e
+            },
+            effectDisplay() { return "*" + format(this.effect()) }
+        },
+        41: {
+            title: "Refreshing wa\'ers^2",
+            description: "The less clothes you buy, the stronger <b>Refreshing waTers</b>\'s effect.",
+            cost: new ExpantaNum(1e67),
+            effect() {
+                e = new ExpantaNum(20).sub(getClothesBought())
+                return e.div(10).add(1).pow(0.4)
+            },
+            effectDisplay(){return "*"+format(this.effect())}
+        },
         901: {
-            fullDisplay: "Respec your cloth selection.",
+            fullDisplay() { return hasUpgrade("C",24)?"Respec your cloth selection. If you have all the clothing, +1 quality.":"Respec your cloth selection." },
             pay() {
                 player.C.upgrades.sort()
+                if (player.C.upgrades[player.C.upgrades.length - 1] == 943 && player.C.upgrades[player.C.upgrades.length - 18] == 911) {
+                    player.C.quality = player.C.quality.add(1)
+                }
                 while (player.C.upgrades[player.C.upgrades.length - 1]>99||player.C.upgrades[player.C.upgrades.length - 1]==null){
                     player.C.upgrades.pop()
                 }
@@ -1167,5 +1327,8 @@ addLayer("C", {
         933: cloth_grid[12],
         934: cloth_grid[13],
         935: cloth_grid[14],
+        941: cloth_grid[15],
+        942: cloth_grid[16],
+        943: cloth_grid[17],
     }
 })
