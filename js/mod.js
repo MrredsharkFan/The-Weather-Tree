@@ -126,7 +126,7 @@ function getHeat(j) {
 	}
 	e = e.add(buyableEffect("h", 11))
 	if (hasUpgrade("C",13)){e = e.add(upgradeEffect("C",13))}
-	return e.add(28)
+	return e.add(28).min(1.416808e32)
 }
 
 function getCold(j) {
@@ -136,16 +136,17 @@ function getCold(j) {
 	}
 	if (hasUpgrade("C", 14)) { e = e.add(upgradeEffect("C", 14)) }
 	if (hasUpgrade("C", 21)) { e = e.add(upgradeEffect("C", 21)) }
-	if (hasUpgrade("C",23)){e = e.add(2)}
-	e = new ExpantaNum(20).sub(e)
+	if (hasUpgrade("C", 23)) { e = e.add(2) }
+	if (hasUpgrade("C", 43)) { e = e.add(upgradeEffect("C", 43).times(-1)) }
+	e = new ExpantaNum(20).sub(e).max("-273.15")
 	return e
 }
 
 function get_clothing_effect(n=getTotalClothPower()) {
 	e = new ExpantaNum(20).sub(n.add(1).pow(0.5).times(2))
 	f = new ExpantaNum(10).pow(n.pow(1.25).add(1)).add(1)
-	if (!e.gte(0)) {
-		e = e.times(-1).pow(0.25).times(-1)
+	if (!e.gte(0) || (!e.gte(getCold(player.C.points)) && hasUpgrade("C",51))) {
+		if (hasUpgrade("C", 51)) { e = e.sub(getCold(player.C.points)).times(-1).pow(0.25).times(-1).add(getCold(player.C.points)) } else { e = e.times(-1).pow(0.25).times(-1) }
 	}
 	return [e,f]
 }

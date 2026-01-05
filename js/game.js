@@ -454,6 +454,7 @@ function umbrellaTick(dt) {
 	var umbrellaGain = player.r.buyables[11]
 	umbrellaGain = umbrellaGain.times(buyableEffect("r", 11))
 	if (hasUpgrade("r", 12)) { umbrellaGain = umbrellaGain.times(upgradeEffect("r", 12)) }
+	if (hasUpgrade("C", 45)) { umbrellaGain = umbrellaGain.pow(upgradeEffect("C", 45)) }
 	player.r.umbrellas = player.r.umbrellas.add(umbrellaGain.times(dt))
 	if (hasUpgrade("r", 31)) {player.r.umbrella_nests[0] = player.r.umbrella_nests[0].add(player.r.umbrellas.times(dt))}
 
@@ -491,7 +492,7 @@ function other_tick_things(dt) {
 	}
 
 	//rejecting baby play
-	if (player.e.points.gte(getResetGain("e").times(1000))) {
-		player.e.points = getResetGain("e").times(1000)
+	if (player.e.points.gte(getResetGain("e").add("1e1696").times(1000))) {
+		player.e.points = getResetGain("e").times(1000).add("1e1699")
 	}
 }

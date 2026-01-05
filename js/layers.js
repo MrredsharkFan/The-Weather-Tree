@@ -1056,7 +1056,7 @@ addLayer("A", {
 
 function generate_cloth(name, price, effect) {
     return {
-        fullDisplay() { return "<h3>" + name + "</h3><br>-" + format(effect.times(new ExpantaNum.pow(2.5, player.C.quality))) + " Optimal temperature<br>Cost:" + format(price.times(new ExpantaNum.pow(2, player.C.quality))) + " C-coin" },
+        fullDisplay() { return "<h3>" + name + "</h3><br>+" + format(effect.times(new ExpantaNum.pow(2.5, player.C.quality))) + " Clothing power<br>Cost:" + format(price.times(new ExpantaNum.pow(2, player.C.quality))) + " C-coin" },
         canAfford() { return player.C.c_coin.gte(player.C.c_coin_spent.add(price.times(new ExpantaNum.pow(2, player.C.quality)))) },
         pay() { player.C.c_coin_spent = player.C.c_coin_spent.add(price.times(new ExpantaNum.pow(2, player.C.quality))) },
         effect() { return effect.times(new ExpantaNum.pow(2.5, player.C.quality)) }
@@ -1130,7 +1130,7 @@ addLayer("C", {
             "prestige-button",
             ["display-text", function () { return "This equates to a temperature of " + format(getCold(player.C.points), 5) + "*C" }],
             "milestones",
-            ["upgrades",4]
+            ["upgrades",5]
             ]
         },
         "outfits": {
@@ -1270,6 +1270,9 @@ addLayer("C", {
             cost: new ExpantaNum(1e34),
             effect() {
                 e = new ExpantaNum(10).pow(player.e.points.log().pow(1 / 2.4).div(8))
+                if (e.gte("ee10")){
+                    e = new ExpantaNum.pow(10,e.slog().times(10/3).pow(10))
+                }
                 return e
             },
             effectDisplay(){return "*"+format(this.effect())}
@@ -1293,6 +1296,49 @@ addLayer("C", {
                 return e.div(10).add(1).pow(0.4)
             },
             effectDisplay(){return "*"+format(this.effect())}
+        },
+        42: {
+            title: "Steaming generators",
+            description: "Heated temperature boosts energy gain beyond 100*C.",
+            cost: new ExpantaNum(8.9e84),
+            effect() {
+                e = getHeat(player.h.points).sub(100).max(0)
+                e = new ExpantaNum(10).pow(e.add(1).pow(3)).pow(150)
+                return e
+            },
+            effectDisplay(){return "x"+format(this.effect())}
+        },
+        43: {
+            title: "Dawn-Dusk Waves",
+            cost: new ExpantaNum(1e85),
+            effect() {
+                e = Math.sin(Date.now() / 4000) * 2.5
+                if (hasUpgrade("C", 44)) {
+                    e = e/2-1.75
+                }
+                return new ExpantaNum(e.toString())
+            },
+            description() { return "Cooled temperature is altered in a <i>wavy</i> way.<br><br>Currently: " + format(this.effect()) }
+        },
+        44: {
+            title: "Coolkeeper devices",
+            cost: new ExpantaNum(1e86),
+            description: "<b>Dawn-Dusk waves</b>\' effect is better."
+        },
+        45: {
+            title: "Buy 1, get an umbrella free",
+            cost: new ExpantaNum(1e86),
+            description: "Based on clothing power, exponentiate umbrella gain.",
+            effect() {
+                e = getTotalClothPower().div(10000).add(1).log().add(1).pow(1.25)
+                return e
+            },
+            effectDisplay(){return "^"+format(this.effect(),5)}
+        },
+        51: {
+            title: "Optimization",
+            cost: new ExpantaNum(1e90),
+            description: "The softcap of the optimal temperature is set to the current temperature."
         },
         901: {
             fullDisplay() { return hasUpgrade("C",24)?"Respec your cloth selection. If you have all the clothing, +1 quality.":"Respec your cloth selection." },

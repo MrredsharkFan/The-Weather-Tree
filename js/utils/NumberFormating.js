@@ -39,7 +39,7 @@ function egg(n) {
   return n
 }
 function format(decimal, precision = 3, small = false) {
-  if (!decimal.gte(0)){return "-"+format(decimal.times(-1))}
+  if (!(decimal.gte(0)||decimal.eq(0))){return "-"+format(decimal.times(-1))}
     small = small || modInfo.allowSmall
     decimal = new ExpantaNum(decimal)
     let fmt = decimal.toString()
