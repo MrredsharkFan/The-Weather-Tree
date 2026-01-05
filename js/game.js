@@ -495,4 +495,18 @@ function other_tick_things(dt) {
 	if (player.e.points.gte(getResetGain("e").add("1e1696").times(1000))) {
 		player.e.points = getResetGain("e").times(1000).add("1e1699")
 	}
+
+	//S layer... Wtf?
+	if (player.s.unlocked) {
+		if (getCold(player.C.points).gte(0)){
+			player.s.rain_acc = player.s.rain_acc.add(getRain(player.r.points).times(dt).div(3600))
+		} else {
+			f = getRain(player.r.points)
+			if (hasUpgrade("s",33)){f = f.times(upgradeEffect("s",33))}
+			player.s.snow_depth = player.s.snow_depth.add(f.times(dt).div(3600))
+		}
+		if (hasUpgrade("s", 21)) {
+			player.h.oil = player.h.oil.add(getBaseOilGain().times(dt).times(player.s.snowmans))
+		}
+	}
 }

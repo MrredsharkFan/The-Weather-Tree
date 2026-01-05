@@ -75,6 +75,7 @@ addLayer("e", {
                 if (s.gte("1e7200")){
                     s = s.pow(1 / 720).log().times(0.434294481903251827).pow(7200).div("1e1000").add("1e7200")
                 }
+                if (hasUpgrade("s",22)){s = s.pow(upgradeEffect("s",22))}
                 return s
             },
             effectDisplay() {return "x"+format(this.effect())}
@@ -432,6 +433,7 @@ addLayer("r", {
             umbrella_nests: [new OmegaNum(0)],
             r_coins: new OmegaNum(0),
             unlocked: true,
+            nl: 0
         }
     },
     color: "#3344FF",
@@ -479,10 +481,32 @@ addLayer("r", {
                     "upgrades",
                     "blank",
                 ["display-text", function() {return hasUpgrade("r",31)?"You have "+format(player.r.umbrella_nests[0])+" nested umbrellas.":null}]]
+        },
+        "???": {
+            "content": ["main-display",
+                ["display-text", "A certain threshold needs to be reached to unlock this.<br>Come back when you feel like the threshold is reached.<br>It\'s not steaming out..."],
+            ["clickables",1]]
         }
     },
     layerShown() {
         return hasUpgrade("w", 51) || player.r.points.gte(1) 
+    },
+    clickables: {
+        11: {
+            title: "...",
+            display() { return "What kind of new weather can this be..." },
+            canClick() {
+                return (player.r.nl==0)
+            },
+            onClick() {
+                if (getCold(player.C.points).gte(0)) {
+                    alert("You\'re in fact, not ready.")
+                } else {
+                    alert("Welcome to Check back v3.")
+                    player.r.nl = 1
+                }
+            }
+        }
     },
     milestones: {
         0: {
@@ -530,6 +554,13 @@ addLayer("r", {
             requirementDescription: "1.000e308 total rain droplets",
             effectDescription: "Shop\'s base cost is 1, and automate buying max shops. Same with <b>Global Warming</b>.",
             done() { return player.r.total.gte("1e308") }
+        }
+        ,
+        9: {
+            requirementDescription: "Fulfiled the requirement.",
+            unlocked(){return this.done()},
+            effectDescription: "Unlocks a new layer (Non-reset)",
+            done(){return player.r.nl==1}
         }
     },
     buyables: {
@@ -663,6 +694,9 @@ addLayer("h", {
             lc4: 0,
             lc5: 0
         }
+    },
+    tooltip() {
+        return format(player.h.points)+" Heat<br><h5>"+format(getHeat(player.h.points),5)+"*C</h5>"
     },
     color: "#FF9900",
     requires: new ExpantaNum(1e150), 
@@ -1097,6 +1131,9 @@ addLayer("C", {
             quality: new ExpantaNum(0)
         }
     },
+    tooltip() {
+        return format(player.C.points) + " Coldness<br><h5>" + format(getCold(player.C.points), 5) + "*C</h5>"
+    },
     color: "#22AAAA",
     requires: new ExpantaNum("2048"), // Can be a function that takes requirement increases into account
     resource: "Coldness", // Name of prestige currency
@@ -1181,7 +1218,13 @@ addLayer("C", {
             title: "Rerouted heat",
             description: "Heat temperature is boosted by cold temperature.",
             cost: new ExpantaNum(3),
-            effect() { return new ExpantaNum(20).sub(getCold(player.C.points)).add(1).pow(0.3).sub(1) },
+            effect() {
+                e = new ExpantaNum(20).sub(getCold(player.C.points)).add(1).pow(0.3).sub(1) 
+                if (hasUpgrade("C", 52)) {
+                    e = e.times(upgradeEffect("C",52))
+                }
+                return e
+            },
             effectDisplay() { return "+" + format(this.effect(), 5) }
         },
         14: {
@@ -1195,7 +1238,13 @@ addLayer("C", {
             title: "Natural raindrops",
             description: "Rain rate decreases temperature.",
             cost: new ExpantaNum(72),
-            effect() { return getRain(player.r.points).add(1).pow(0.25).sub(1) },
+            effect() {
+                e = getRain(player.r.points).add(1).pow(0.25).sub(1)
+                if (hasUpgrade("C", 53)) {
+                    e = e.pow(1.4)
+                }
+                return e
+             },
             effectDisplay() { return "-" + format(this.effect(), 5) }
         },
         22: {
@@ -1259,7 +1308,7 @@ addLayer("C", {
             cost: new ExpantaNum(1e30),
             effect() {
                 e = player.C.points
-                e = new ExpantaNum(10).pow(e.log().pow(3).div(8))
+                e = new ExpantaNum(10).pow(e.add(1).log().pow(3).div(8))
                 return e
             },
             effectDisplay() {return "*"+format(this.effect())}
@@ -1269,9 +1318,9 @@ addLayer("C", {
             description: "Anti-energy is boosted by Energy.",
             cost: new ExpantaNum(1e34),
             effect() {
-                e = new ExpantaNum(10).pow(player.e.points.log().pow(1 / 2.4).div(8))
+                e = new ExpantaNum(10).pow(player.e.points.add(1).log().pow(1 / 2.4).div(8))
                 if (e.gte("ee10")){
-                    e = new ExpantaNum.pow(10,e.slog().times(10/3).pow(10))
+                    e = new ExpantaNum.pow(10,e.add(10).slog().times(10/3).pow(10))
                 }
                 return e
             },
@@ -1340,6 +1389,21 @@ addLayer("C", {
             cost: new ExpantaNum(1e90),
             description: "The softcap of the optimal temperature is set to the current temperature."
         },
+        52: {
+            title: "EXtRA air condiTioner!!!!",
+            cost: new ExpantaNum(1e92),
+            description: "<b>Rerouted Heat</b> is stronger based on energy.",
+            effect() {
+                f = player.e.points.add(10).slog().pow(9).div(5000).add(1)
+                return f
+            },
+            effectDisplay() { return "*" + format(this.effect(), 5) }
+        },
+        53: {
+            title: "Senere scenery",
+            description: "<b>Natural raindrops</b>\'s effect ^1.4.",
+            cost: new ExpantaNum(1e117)
+        },
         901: {
             fullDisplay() { return hasUpgrade("C",24)?"Respec your cloth selection. If you have all the clothing, +1 quality.":"Respec your cloth selection." },
             pay() {
@@ -1378,3 +1442,156 @@ addLayer("C", {
         943: cloth_grid[17],
     }
 })
+
+function snowman_button(n,u) {
+    return {
+        snowman_wait_time() {
+            q = 45
+            if (hasUpgrade("s", 14)) { q = q + upgradeEffect("s", 14).toNumber() }
+            if (hasUpgrade("s", 31)) { q = q*1.5 }
+            return q.toFixed(2)
+        },
+        title() { return "Snowman [" + formatTime(Math.max(0, this.snowman_wait_time() - (Date.now() - player.s.timers[n]) / 1000)) + " left]" },
+        unlocked() { return (hasUpgrade("s", 11) && hasUpgrade("s",u)) },
+        display() {
+            e = getSnowmanGain()
+            return "Build " + format(e) + " snowman(s)! Cooldown: " + this.snowman_wait_time() + "s"
+        },
+        canClick() { return (Date.now() - player.s.timers[n] > this.snowman_wait_time() * 1000) },
+        onClick() {
+            player.s.snowmans = player.s.snowmans.add(getSnowmanGain())
+            player.s.timers[n] = Date.now()
+            if (hasUpgrade("s", 31)) {
+                r = Math.floor(Math.min(Math.log10(1 / Math.random()), 6))
+                player.s.rarity_snowmans[r] = player.s.rarity_snowmans[r].add(getSnowmanGain())
+            }
+        }
+    }
+}
+
+rarities = ["Common","Uncommon","Rare","Epic","Legendary","Mythical","Omega"]
+function get_snowman_rarity_text(){
+    return null //dummy functions!!!! who tf cared about optmization on a tmt mod...
+}
+
+addLayer("s", {
+    name: "Snow",
+    tooltip() {
+        return format(player.s.snow_depth)+"cm snow"
+    },
+    symbol: "S",
+    color: "#eeeeee",
+    branches: ["r", "C"],
+    tabFormat: [
+        ["display-text", "This layer doesn\'t reset anything.<br>Good luck.<br><h5>Tip: Play this layer like a ... shortened version of check back.</h5>"],
+        "blank",
+        ["display-text", function () {
+            return "Current <font color='#0066ee'>rain</font> accumlation: <h3>" + format(player.s.rain_acc) + "</h3>mm<br><br>" +
+                "Current <font color='#aaaaaa'>snow</font> accumlation: <h3>" + format(player.s.snow_depth) + "</h3>cm"
+        }],
+        "upgrades",
+        ["display-text", function(){return "<h3>"+(hasUpgrade("s",11)?format(player.s.snowmans)+"</h3> Snowmans":null)}],
+        "clickables",
+        ["display-text", function(){return (hasUpgrade("s",31)?get_snowman_rarity_text():null)}]
+    ],
+    layerShown() { return hasMilestone("r", 9) },
+    unlocked() { return this.layerShown() },
+    row: 2,
+    position: 1,
+    type: "none",
+    startData() {
+        return {
+            points: new ExpantaNum(0),
+            snow_depth: new ExpantaNum(0),
+            rain_acc: new ExpantaNum(0),
+            snowmans: new ExpantaNum(0),
+            timers: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            rarity_snowmans: [new ExpantaNum(0), new ExpantaNum(0), new ExpantaNum(0), new ExpantaNum(0), new ExpantaNum(0), new ExpantaNum(0), new ExpantaNum(0)],
+        }
+    },
+    upgrades: {
+        11: {
+            fullDisplay() { return "<h3>Fake<sup>-1</sup> labour</h3><br>Enable the creation of snowmans.<br><br>Cost: 2cm snow." },
+            canAfford() { return player.s.snow_depth.gte(2) },
+            pay(){ player.s.snow_depth = player.s.snow_depth.sub(2)}
+        },
+        12: {
+            fullDisplay() { return "<h3>Bulk building</h3><br>Snowmans are boosted by snow depth.<br><br>Cost: 2 snowmans<br>Currently: x"+format(this.effect()) },
+            canAfford() { return player.s.snowmans.gte(2) },
+            pay() { player.s.snowmans = player.s.snowmans.sub(2) },
+            effect() {
+                e = player.s.snow_depth.add(1).pow(0.5)
+                if (hasUpgrade("s",14)){ e = e.pow(2)}
+                return e
+            }
+        },
+        13: {
+            fullDisplay() { return "<h3>Albedo part 1</h3><br>Snow decreases temperature.<br><br>Cost: 10 snowmans<br>Currently: -" + format(this.effect()) },
+            canAfford() { return player.s.snowmans.gte(10) },
+            pay() { player.s.snowmans = player.s.snowmans.sub(10) },
+            effect() { return player.s.snow_depth.add(1).log().add(1).log() }
+        },
+        14: {
+            fullDisplay() { return "<h3>Detailed constructions</h3><br><b>Bulk Building</b> is better, but the snowman cooldown is increased accordingly.<br><br>Cost: 25 snowmans<br>Currently: +" + format(this.effect())+"s" },
+            canAfford() { return player.s.snowmans.gte(25) },
+            pay() { player.s.snowmans = player.s.snowmans.sub(25) },
+            effect() { return player.s.snow_depth.add(1).slog().times(80) }
+        },
+        21: {
+            fullDisplay() { return "<h3>Coal collection</h3><br>Snowmans can now mine coal (+1x base gain/snowman)<br><br>Cost: 160 Snowmans"},
+            canAfford() { return player.s.snowmans.gte(160) },
+            pay() { player.s.snowmans = player.s.snowmans.sub(160) }
+        },
+        22: {
+            fullDisplay() { return "<h3>HYPER GENERATORS</h3><br>Snowmans boost the efficiency of <b>2nd Generator</b> AFTER SOFTCAP<br><br>Cost: 225 Snowmans<br>Currently: ^"+format(this.effect(),4) },
+            canAfford() { return player.s.snowmans.gte(225) },
+            pay() { player.s.snowmans = player.s.snowmans.sub(225) },
+            effect() {
+                e = player.s.snowmans.add(1).log().div(3).add(1)
+                return e
+            }
+        },
+        23: {
+            fullDisplay() { return "<h3>Snowing more-\>More snowmans</h3><br>Add a few(5) more snowman buttons<br><br>Cost: 300 Snowmans"},
+            canAfford() { return player.s.snowmans.gte(300) },
+            pay() { player.s.snowmans = player.s.snowmans.sub(300) }
+        },
+        24: {
+            fullDisplay() { return "<h3>Let them wear some clothing too!</h3><br>+50% Clothing power.<br><br>Cost: 1,500 Snowmans" },
+            canAfford() { return player.s.snowmans.gte(1500) },
+            pay() { player.s.snowmans = player.s.snowmans.sub(1500) }
+        },
+        31: {
+            fullDisplay() { return "<h3>Demonitization</h3><br>Unlocks one of the most <i>disgusting</i> features in a tmt mod, and x1.5 wait time.<br><br>Cost: 2,500 Snowmans" },
+            canAfford() { return player.s.snowmans.gte(2500) },
+            pay() { player.s.snowmans = player.s.snowmans.sub(2500) }
+        },
+        32: {
+            fullDisplay() { return "<h3>Specialized <i>Icey</i> Statues</h3><br>Uncommon snowmans decrease temperature.<br><br>Cost: 100 Uncommon snowmans<br>Currently: -"+format(this.effect(),4) },
+            canAfford() { return player.s.rarity_snowmans[1].gte(100) },
+            pay() { player.s.rarity_snowmans[1] = player.s.rarity_snowmans[1].sub(100) },
+            effect() {
+                e = player.s.rarity_snowmans[1].add(1).log().div(2.8)
+                return e
+            }
+        },
+        33: {
+            fullDisplay() { return "<h3>Coldly, Snowed in</h3><br>Temperature boosts snow gain.<br><br>Cost: 200 Uncommon snowmans<br>Currently: *" + format(this.effect(), 4) },
+            canAfford() { return player.s.rarity_snowmans[1].gte(200) },
+            pay() { player.s.rarity_snowmans[1] = player.s.rarity_snowmans[1].sub(200) },
+            effect() {
+                e = new ExpantaNum(0).sub(getCold(player.C.points).min(0)).add(1).pow(2)
+                return e
+            }
+        }
+    },
+    clickables: {
+        11: snowman_button(0, 11),
+        12: snowman_button(1, 23),
+        13: snowman_button(2, 23),
+        21: snowman_button(3, 23),
+        22: snowman_button(4, 23),
+        23: snowman_button(5, 23),
+    }
+}
+)

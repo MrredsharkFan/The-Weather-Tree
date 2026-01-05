@@ -59,7 +59,7 @@ function addedPlayerData() {
 }}
 
 // Display extra things at the top of the page
-var displayThings = ["have u guys realized that being gay is not a mistake, but a sin"]
+var displayThings = [function(){return "Exact: "+player.points}]
 
 // Determines when the game "ends"
 function isEndgame() {
@@ -138,6 +138,8 @@ function getCold(j) {
 	if (hasUpgrade("C", 21)) { e = e.add(upgradeEffect("C", 21)) }
 	if (hasUpgrade("C", 23)) { e = e.add(2) }
 	if (hasUpgrade("C", 43)) { e = e.add(upgradeEffect("C", 43).times(-1)) }
+	if (hasUpgrade("s", 13)) { e = e.add(upgradeEffect("s", 13)) }
+	if (hasUpgrade("s", 32)) { e = e.add(upgradeEffect("s", 32)) }
 	e = new ExpantaNum(20).sub(e).max("-273.15")
 	return e
 }
@@ -146,7 +148,15 @@ function get_clothing_effect(n=getTotalClothPower()) {
 	e = new ExpantaNum(20).sub(n.add(1).pow(0.5).times(2))
 	f = new ExpantaNum(10).pow(n.pow(1.25).add(1)).add(1)
 	if (!e.gte(0) || (!e.gte(getCold(player.C.points)) && hasUpgrade("C",51))) {
-		if (hasUpgrade("C", 51)) { e = e.sub(getCold(player.C.points)).times(-1).pow(0.25).times(-1).add(getCold(player.C.points)) } else { e = e.times(-1).pow(0.25).times(-1) }
+		if (hasUpgrade("C", 51)) {
+			if (getCold(player.C.points).gte(0)){
+				e = e.sub(getCold(player.C.points)).times(-1).pow(0.25).times(-1).add(getCold(player.C.points))
+			} else {
+				e = e.sub(getCold(player.C.points)).pow(0.25).add(getCold(player.C.points))
+			}
+		} else {
+			e = e.times(-1).pow(0.25).times(-1)
+		}
 	}
 	return [e,f]
 }
@@ -168,6 +178,7 @@ function getTotalClothPower() {
 			g = g.add(upgradeEffect("C",upg[i]))
 		}
 	}
+	if (hasUpgrade("s",24)){g = g.times(1.5)}
 	return g
 }
 
@@ -183,4 +194,18 @@ function getClothesBought() {
 
 function dummy_1() {
 	return player.C.quality
+}
+
+function getSnowmanGain() {
+	q = new ExpantaNum(1)
+	if (hasUpgrade("s",12)){q = q.times(upgradeEffect("s",12))}
+	return q
+}
+
+function get_snowman_rarity_text() {
+	e = ""
+	for (i in player.s.rarity_snowmans) {
+		e = e+format(player.s.rarity_snowmans[i])+" "+rarities[i]+" Snowmans<br>"
+	}
+	return e
 }
