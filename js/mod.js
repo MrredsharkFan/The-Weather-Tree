@@ -72,7 +72,7 @@ function isEndgame() {
 
 // You can change this if you have things that can be messed up by long tick lengths
 function maxTickLength() {
-	return(10000000) // Default is 1 hour which is just arbitrarily large
+	return(10) // oh wowe
 }
 
 // Use this if you need to undo inflation from an older version. If the version is older than the version that fixed the issue,
@@ -140,6 +140,7 @@ function getCold(j) {
 	if (hasUpgrade("C", 43)) { e = e.add(upgradeEffect("C", 43).times(-1)) }
 	if (hasUpgrade("s", 13)) { e = e.add(upgradeEffect("s", 13)) }
 	if (hasUpgrade("s", 32)) { e = e.add(upgradeEffect("s", 32)) }
+	if (hasUpgrade("s", 43)) { e = e.add(upgradeEffect("s", 43)) }
 	e = new ExpantaNum(20).sub(e).max("-273.15")
 	return e
 }

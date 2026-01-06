@@ -65,7 +65,7 @@ function format(decimal, precision = 3, small = false) {
     }
   }else if(decimal.lt(1e9)){
     return commaFormat(decimal,precision)
-  }else if(decimal.lt("e1e15")){
+  }else if(decimal.lt("e1e9")){
     let mantissa = EN(10).pow(decimal.log10().sub(decimal.log10().floor()))
     let exp = decimal.log10().floor()
     let m = mantissa.toString().split(".")
@@ -78,12 +78,7 @@ function format(decimal, precision = 3, small = false) {
     return mantissa+"e"+(exp.gte(1000)?format(exp):exp.toString())
   }
   else if(decimal.lt("10^^5")){
-    let part1 = "e".repeat(egg(decimal.array[1])+1 - (decimal.gte(EN.E_MAX_SAFE_INTEGER)))
-    if(part1 != "e") {
-      decimal.array.pop()
-      return part1+format(decimal)
-    }
-    return "e"+format(decimal.log10())
+    return "e"+format(decimal.log10(),6)
   }
   else if(decimal.lt("10^^^5")){
     let part1 = "F".repeat(egg(decimal.array[2])+1 - (decimal.gte(EN.TETRATED_MAX_SAFE_INTEGER)))
@@ -133,6 +128,12 @@ function formatWhole(decimal) {
 
 function formatTime(x) {
   s = new ExpantaNum(x)
+  if (s.gte(3600)) {
+    return s.div(3600).floor() + "h " + formatTime(s.mod(3600))
+  }
+  if (s.gte(60)){
+    return s.div(60).floor()+"m "+formatTime(s.mod(60))
+  }
   return format(s)+"s"
 }
 

@@ -88,7 +88,8 @@ addLayer("e", {
             effect() {
                 s = player.e.points.add(4).pow(0.5)
                 if (hasUpgrade("w", 42)) { s = s.pow(clickableEffect("w", 22)) }
-                if (s.gte(1e24)) {s = s.div(1e14).log(10).pow(24).div(1e9).add(1e24)}
+                if (s.gte(1e24)) { s = s.div(1e14).log(10).pow(24).div(1e9).add(1e24) }
+                if (hasUpgrade("A", 13)){s = new ExpantaNum(10).pow(s.add(1).log().times(0.434294482).pow(2))}
                 return s
             },
             effectDisplay() {return "x"+format(this.effect())}
@@ -881,11 +882,16 @@ addLayer("h", {
         },
         53: {
             unlocked() { return hasUpgrade("h", 52) },
+            time() {
+                if (hasUpgrade("s",41)){ return 2}
+                if (hasUpgrade("C", 32)) { return 30 }
+                return 10
+            },
             title: "Cloudburst",
-            description() { return "<b>Sudden intensification</b> effect ^1.5, only for 1s every 10s, next activation in " + Math.max(0, ((hasUpgrade("C", 32) ? 30000 : 10000) - Date.now() % (hasUpgrade("C", 32) ? 30000 : 10000))/1000)+"s" },
+            description() { return "<b>Sudden intensification</b> effect ^1.5, only for 1s every 10s, next activation in " + format(new ExpantaNum(Math.max(0, (this.time() - (Date.now()/1000 % this.time())),4)))+"s" },
             cost: new ExpantaNum(1e28),
             effect() {
-                if (Date.now() % (hasUpgrade("C", 32) ? 30000 : 10000) < 1000) {
+                if (Date.now() % (this.time()*1000) < 1000) {
                     e = new ExpantaNum(1.5)
                     if (hasUpgrade("C", 32)) {
                         e = e.times(1.5)
@@ -1082,7 +1088,12 @@ addLayer("A", {
                 return e
              },
             effectDisplay() {return "x"+format(this.effect())}
-        }
+        },
+        13: {
+            title: "2+1/2+1/6+...",
+            description: "<b>Let me do something</b>\'s effect is dilated by 2.",
+            cost: new ExpantaNum("1e1800")
+        },
     }
 }
 )
@@ -1346,17 +1357,6 @@ addLayer("C", {
             },
             effectDisplay(){return "*"+format(this.effect())}
         },
-        42: {
-            title: "Steaming generators",
-            description: "Heated temperature boosts energy gain beyond 100*C.",
-            cost: new ExpantaNum(8.9e84),
-            effect() {
-                e = getHeat(player.h.points).sub(100).max(0)
-                e = new ExpantaNum(10).pow(e.add(1).pow(3)).pow(150)
-                return e
-            },
-            effectDisplay(){return "x"+format(this.effect())}
-        },
         43: {
             title: "Dawn-Dusk Waves",
             cost: new ExpantaNum(1e85),
@@ -1448,21 +1448,24 @@ function snowman_button(n,u) {
         snowman_wait_time() {
             q = 45
             if (hasUpgrade("s", 14)) { q = q + upgradeEffect("s", 14).toNumber() }
-            if (hasUpgrade("s", 31)) { q = q*1.5 }
+            if (hasUpgrade("s", 31)) { q = q * 1.5 }
+            if (hasUpgrade("s",42)){q = q * (2**n)/5}
             return q.toFixed(2)
         },
         title() { return "Snowman [" + formatTime(Math.max(0, this.snowman_wait_time() - (Date.now() - player.s.timers[n]) / 1000)) + " left]" },
         unlocked() { return (hasUpgrade("s", 11) && hasUpgrade("s",u)) },
         display() {
             e = getSnowmanGain()
-            return "Build " + format(e) + " snowman(s)! Cooldown: " + this.snowman_wait_time() + "s"
+            e = "Build " + format(e) + " snowman(s)! Cooldown: " + this.snowman_wait_time() + "s"
+            if (hasUpgrade("s",42)){e = e+"<br>Luck: "+format(new ExpantaNum(2.2**n),4)+"x"}
+            return e
         },
         canClick() { return (Date.now() - player.s.timers[n] > this.snowman_wait_time() * 1000) },
         onClick() {
             player.s.snowmans = player.s.snowmans.add(getSnowmanGain())
             player.s.timers[n] = Date.now()
             if (hasUpgrade("s", 31)) {
-                r = Math.floor(Math.min(Math.log10(1 / Math.random()), 6))
+                r = Math.floor(Math.min(Math.log10((1 / (Math.random()*2.2**(-n))), 6)))
                 player.s.rarity_snowmans[r] = player.s.rarity_snowmans[r].add(getSnowmanGain())
             }
         }
@@ -1529,7 +1532,11 @@ addLayer("s", {
             fullDisplay() { return "<h3>Albedo part 1</h3><br>Snow decreases temperature.<br><br>Cost: 10 snowmans<br>Currently: -" + format(this.effect()) },
             canAfford() { return player.s.snowmans.gte(10) },
             pay() { player.s.snowmans = player.s.snowmans.sub(10) },
-            effect() { return player.s.snow_depth.add(1).log().add(1).log() }
+            effect() {
+                e = player.s.snow_depth.add(1).log().add(1).log()
+                if (hasUpgrade("s",34)){e = e.times(upgradeEffect("s",34))}
+                return e
+             }
         },
         14: {
             fullDisplay() { return "<h3>Detailed constructions</h3><br><b>Bulk Building</b> is better, but the snowman cooldown is increased accordingly.<br><br>Cost: 25 snowmans<br>Currently: +" + format(this.effect())+"s" },
@@ -1576,13 +1583,38 @@ addLayer("s", {
             }
         },
         33: {
-            fullDisplay() { return "<h3>Coldly, Snowed in</h3><br>Temperature boosts snow gain.<br><br>Cost: 200 Uncommon snowmans<br>Currently: *" + format(this.effect(), 4) },
-            canAfford() { return player.s.rarity_snowmans[1].gte(200) },
-            pay() { player.s.rarity_snowmans[1] = player.s.rarity_snowmans[1].sub(200) },
+            fullDisplay() { return "<h3>Coldly, Snowed in</h3><br>Temperature boosts snow gain.<br><br>Cost: 1,000 Uncommon snowmans<br>Currently: *" + format(this.effect(), 4) },
+            canAfford() { return player.s.rarity_snowmans[1].gte(1000) },
+            pay() { player.s.rarity_snowmans[1] = player.s.rarity_snowmans[1].sub(1000) },
             effect() {
                 e = new ExpantaNum(0).sub(getCold(player.C.points).min(0)).add(1).pow(2)
                 return e
             }
+        },
+        34: {
+            fullDisplay() { return "<h3>Albedo pt.2</h3><br><b>Albedo part 1</b> is stronger based on uncommon snowmans.<br><br>Cost: 2,500 Uncommon snowmans<br>Currently: *" + format(this.effect(), 4) },
+            canAfford() { return player.s.rarity_snowmans[1].gte(2500) },
+            pay() { player.s.rarity_snowmans[1] = player.s.rarity_snowmans[1].sub(2500) },
+            effect() {
+                e = player.s.rarity_snowmans[1].add(1).log().div(15).add(1)
+                return e
+            }
+        },
+        41: {
+            fullDisplay() { return "<h3>Sustainability</h3><br><b>Cloudburst</b>\'s cooldown is 2s.<br><br>Cost: 10,000 Uncommon snowmans"},
+            canAfford() { return player.s.rarity_snowmans[1].gte(10000) },
+            pay() { player.s.rarity_snowmans[1] = player.s.rarity_snowmans[1].sub(10000) },
+        },
+        42: {
+            fullDisplay() { return "<h3>More sleeping, more calmness</h3><br>Alter the clickables\' mechanics, 'slightly'<br>Also, /5 base wait time, and unlock 3 more clickables.<br><br>Cost: 400,000 Uncommon snowmans" },
+            canAfford() { return player.s.rarity_snowmans[1].gte(400000) },
+            pay() { player.s.rarity_snowmans[1] = player.s.rarity_snowmans[1].sub(400000) },
+        },
+        43: {
+            fullDisplay() { return "<h3>Iced Lootbozos</h3><br>Rare snowmans decrease temperature.<br><br>Cost: 100,000 Rare snowmans Currently: -" + format(this.effect(), 4) },
+            canAfford() { return player.s.rarity_snowmans[2].gte(100000) },
+            pay() { player.s.rarity_snowmans[2] = player.s.rarity_snowmans[2].sub(100000) },
+            effect(){return player.s.rarity_snowmans[2].add(1).log().div(2.4)}
         }
     },
     clickables: {
@@ -1592,6 +1624,10 @@ addLayer("s", {
         21: snowman_button(3, 23),
         22: snowman_button(4, 23),
         23: snowman_button(5, 23),
+        31: snowman_button(6, 42),
+        32: snowman_button(7, 42),
+        33: snowman_button(8, 42),
+
     }
 }
 )
